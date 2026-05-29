@@ -7,7 +7,7 @@ import { useRouter } from 'next/navigation';
 import { useTranslation } from '@/lib/i18n';
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, startOfWeek, isSameMonth, isSunday } from 'date-fns';
 import { ru, de } from 'date-fns/locale';
-import { LogOut, LayoutDashboard, Calendar as CalendarIcon, BarChart3, ChevronLeft, ChevronRight, Trash2, Download, Shield, Menu, X } from 'lucide-react';
+import { LogOut, LayoutDashboard, Calendar as CalendarIcon, BarChart3, Trash2, Download, Shield, Menu, X } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import ShiftModal from './ShiftModal';
 
@@ -68,18 +68,8 @@ export default function Dashboard() {
 
   const handleDeleteShift = async (id: number) => {
     if (!confirm('Удалить эту смену навсегда?')) return;
-
-    const { error } = await supabase
-      .from('work_shifts')
-      .delete()
-      .eq('id', id);
-
-    if (error) {
-      alert('Ошибка при удалении: ' + error.message);
-    } else {
-      await loadData();
-      alert('Смена успешно удалена');
-    }
+    const { error } = await supabase.from('work_shifts').delete().eq('id', id);
+    if (!error) await loadData();
   };
 
   const handleDateClick = (date: string) => {
@@ -87,9 +77,7 @@ export default function Dashboard() {
     setShowModal(true);
   };
 
-  const hasShift = (dateStr: string) => {
-    return shifts.some(shift => shift.date === dateStr);
-  };
+  const hasShift = (dateStr: string) => shifts.some(s => s.date === dateStr);
 
   const groupedByMonth = shifts.reduce((acc: any, shift: any) => {
     const key = format(new Date(shift.date), 'yyyy-MM');
@@ -102,7 +90,6 @@ export default function Dashboard() {
 
   const downloadExcel = () => {
     if (!selectedMonth || !groupedByMonth[selectedMonth]) return;
-
     const monthShifts = groupedByMonth[selectedMonth];
     const monthName = format(new Date(selectedMonth + '-01'), 'LLLL yyyy', { locale: de });
 
@@ -132,7 +119,10 @@ export default function Dashboard() {
     <div className="min-h-screen bg-zinc-950 text-white">
       {/* MOBILE TOP BAR */}
       <div className="lg:hidden bg-zinc-900 border-b border-zinc-800 px-4 py-3 flex items-center justify-between sticky top-0 z-50">
-        <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="p-2">
+        <button 
+          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+          className="p-2 active:scale-95 transition"
+        >
           <Menu size={28} />
         </button>
         <h1 className="text-xl font-bold">{t('common.title')}</h1>
@@ -164,18 +154,14 @@ export default function Dashboard() {
             <div className="flex bg-zinc-900 p-1 rounded-3xl w-fit mb-8">
               <button
                 onClick={() => setActiveTab('calendar')}
-                className={`px-6 py-3 rounded-2xl flex items-center gap-2 transition ${
-                  activeTab === 'calendar' ? 'bg-white text-black shadow' : 'hover:bg-zinc-800 text-zinc-400'
-                }`}
+                className={`px-6 py-3 rounded-2xl flex items-center gap-2 transition ${activeTab === 'calendar' ? 'bg-white text-black shadow' : 'hover:bg-zinc-800 text-zinc-400'}`}
               >
                 <CalendarIcon size={20} />
                 {t('common.calendar')}
               </button>
               <button
                 onClick={() => setActiveTab('stats')}
-                className={`px-6 py-3 rounded-2xl flex items-center gap-2 transition ${
-                  activeTab === 'stats' ? 'bg-white text-black shadow' : 'hover:bg-zinc-800 text-zinc-400'
-                }`}
+                className={`px-6 py-3 rounded-2xl flex items-center gap-2 transition ${activeTab === 'stats' ? 'bg-white text-black shadow' : 'hover:bg-zinc-800 text-zinc-400'}`}
               >
                 <BarChart3 size={20} />
                 {t('common.stats')}
@@ -325,61 +311,50 @@ export default function Dashboard() {
         </div>
       </div>
 
-      {/* ==================== MOBILE MENU (слева, плавно) ==================== */}
-      {mobileMenuOpen && (
-        <>
-          <div 
-            className="fixed inset-0 bg-black/60 z-[100] lg:hidden"
-            onClick={() => setMobileMenuOpen(false)}
-          />
-          <div 
-            className={`fixed top-0 left-0 h-full w-72 bg-zinc-900 border-r border-zinc-700 z-[110] transform transition-transform duration-300 ease-out shadow-2xl
-              ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}
-          >
-            <div className="p-6">
-              <div className="flex justify-between items-center mb-8">
-                <h2 className="text-2xl font-bold">{t('common.title')}</h2>
-                <button onClick={() => setMobileMenuOpen(false)} className="p-2">
-                  <X size={28} />
-                </button>
-              </div>
+      {/* ==================== MOBILE MENU (исправленная версия) ==================== */}
+      <div 
+        className={`fixed inset-0 bg-black/60 z-[100] lg:hidden transition-opacity duration-300
+          ${mobileMenuOpen ? 'opacity-100 visible' : 'opacity-0 invisible'}`}
+        onClick={() => setMobileMenuOpen(false)}
+      />
 
-              <nav className="flex flex-col gap-2">
-                <a 
-                  href="/dashboard" 
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center gap-3 px-4 py-4 rounded-2xl hover:bg-zinc-800 text-white"
-                >
-                  <LayoutDashboard size={24} />
-                  Dashboard
-                </a>
-                <a 
-                  href="/schedule" 
-                  onClick={() => setMobileMenuOpen(false)}
-                  className="flex items-center gap-3 px-4 py-4 rounded-2xl hover:bg-zinc-800 text-white"
-                >
-                  <CalendarIcon size={24} />
-                  {t('schedule.title')}
-                </a>
-              </nav>
-            </div>
-
-            {/* Кнопка Выйти внизу */}
-            <div className="absolute bottom-8 left-6 right-6">
-              <button
-                onClick={() => {
-                  setMobileMenuOpen(false);
-                  supabase.auth.signOut().then(() => router.push('/login'));
-                }}
-                className="flex items-center gap-3 w-full px-4 py-4 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-2xl"
-              >
-                <LogOut size={24} />
-                <span className="font-medium">{t('common.logout')}</span>
-              </button>
-            </div>
+      <div 
+        className={`fixed top-0 left-0 h-full w-72 bg-zinc-900 border-r border-zinc-700 z-[110] transform transition-transform duration-300 ease-out shadow-2xl lg:hidden
+          ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}
+      >
+        <div className="p-6">
+          <div className="flex justify-between items-center mb-8">
+            <h2 className="text-2xl font-bold">{t('common.title')}</h2>
+            <button onClick={() => setMobileMenuOpen(false)} className="p-2">
+              <X size={28} />
+            </button>
           </div>
-        </>
-      )}
+
+          <nav className="flex flex-col gap-2">
+            <a href="/dashboard" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 px-4 py-4 rounded-2xl hover:bg-zinc-800 text-white">
+              <LayoutDashboard size={24} />
+              Dashboard
+            </a>
+            <a href="/schedule" onClick={() => setMobileMenuOpen(false)} className="flex items-center gap-3 px-4 py-4 rounded-2xl hover:bg-zinc-800 text-white">
+              <CalendarIcon size={24} />
+              {t('schedule.title')}
+            </a>
+          </nav>
+        </div>
+
+        <div className="absolute bottom-8 left-6 right-6">
+          <button
+            onClick={() => {
+              setMobileMenuOpen(false);
+              supabase.auth.signOut().then(() => router.push('/login'));
+            }}
+            className="flex items-center gap-3 w-full px-4 py-4 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-2xl"
+          >
+            <LogOut size={24} />
+            <span className="font-medium">{t('common.logout')}</span>
+          </button>
+        </div>
+      </div>
 
       <ShiftModal 
         isOpen={showModal} 
