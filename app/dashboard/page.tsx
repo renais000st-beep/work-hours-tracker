@@ -325,6 +325,62 @@ export default function Dashboard() {
         </div>
       </div>
 
+      {/* ==================== MOBILE MENU (слева, плавно) ==================== */}
+      {mobileMenuOpen && (
+        <>
+          <div 
+            className="fixed inset-0 bg-black/60 z-[100] lg:hidden"
+            onClick={() => setMobileMenuOpen(false)}
+          />
+          <div 
+            className={`fixed top-0 left-0 h-full w-72 bg-zinc-900 border-r border-zinc-700 z-[110] transform transition-transform duration-300 ease-out shadow-2xl
+              ${mobileMenuOpen ? 'translate-x-0' : '-translate-x-full'}`}
+          >
+            <div className="p-6">
+              <div className="flex justify-between items-center mb-8">
+                <h2 className="text-2xl font-bold">{t('common.title')}</h2>
+                <button onClick={() => setMobileMenuOpen(false)} className="p-2">
+                  <X size={28} />
+                </button>
+              </div>
+
+              <nav className="flex flex-col gap-2">
+                <a 
+                  href="/dashboard" 
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center gap-3 px-4 py-4 rounded-2xl hover:bg-zinc-800 text-white"
+                >
+                  <LayoutDashboard size={24} />
+                  Dashboard
+                </a>
+                <a 
+                  href="/schedule" 
+                  onClick={() => setMobileMenuOpen(false)}
+                  className="flex items-center gap-3 px-4 py-4 rounded-2xl hover:bg-zinc-800 text-white"
+                >
+                  <CalendarIcon size={24} />
+                  {t('schedule.title')}
+                </a>
+              </nav>
+            </div>
+
+            {/* Кнопка Выйти внизу */}
+            <div className="absolute bottom-8 left-6 right-6">
+              <button
+                onClick={() => {
+                  setMobileMenuOpen(false);
+                  supabase.auth.signOut().then(() => router.push('/login'));
+                }}
+                className="flex items-center gap-3 w-full px-4 py-4 text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-2xl"
+              >
+                <LogOut size={24} />
+                <span className="font-medium">{t('common.logout')}</span>
+              </button>
+            </div>
+          </div>
+        </>
+      )}
+
       <ShiftModal 
         isOpen={showModal} 
         onClose={() => setShowModal(false)}
