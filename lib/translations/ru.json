@@ -1,0 +1,71 @@
+{
+  "common": {
+    "title": "Учёт рабочих часов",
+    "calendar": "Календарь",
+    "stats": "Статистика",
+    "logout": "Выйти",
+    "adminPanel": "Админ-панель",
+    "save": "Сохранить",
+    "cancel": "Отмена",
+    "downloadExcel": "Скачать Excel"
+  },
+  "login": {
+    "title": "Учёт рабочих часов",
+    "email": "Email",
+    "password": "Пароль",
+    "login": "Войти"
+  },
+  "setup": {
+    "usernameTitle": "Придумай своё имя",
+    "usernameSubtitle": "Это имя будет использоваться навсегда",
+    "languageTitle": "Выберите язык интерфейса",
+    "languageSubtitle": "Вы сможете изменить язык позже в настройках",
+    "russian": "Русский",
+    "german": "Немецкий",
+    "continue": "Продолжить"
+  },
+  "dashboard": {
+    "noShifts": "Пока нет заполненных смен",
+    "monthStats": "Статистика по месяцам"
+  },
+  "stats": {
+    "monthStats": "Статистика по месяцам",
+    "noShifts": "Пока нет заполненных смен",
+    "table": {
+      "date": "Дата",
+      "start": "Начало",
+      "end": "Конец",
+      "dayHours": "День",
+      "nightHours": "Ночь",
+      "sunday": "Воскресенье",
+      "holiday": "Праздник",
+      "total": "Итого"
+    }
+  },
+  "shiftModal": {
+    "title": "Добавить смену",
+    "date": "Дата",
+    "startTime": "Начало",
+    "endTime": "Конец",
+    "saveShift": "Сохранить смену"
+  },
+  "admin": {
+    "title": "Админ-панель",
+    "back": "Назад",
+    "noShifts": "Пока нет ни одной смены"
+  },
+  "schedule": {
+    "title": "Рабочий план",
+    "back": "Назад в Dashboard",
+    "myShift": "Моя смена",
+    "selectUser": "Выбрать пользователя",
+    "from": "От",
+    "to": "До",
+    "saveShift": "Сохранить смену",
+    "saving": "Сохранение...",
+    "alreadyPlanned": "Запланировано на этот день",
+    "delete": "Удалить",
+    "update": "Обновить",
+    "deleteConfirm": "Удалить эту смену?"
+}
+}

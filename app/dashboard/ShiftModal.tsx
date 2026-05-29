@@ -1,97 +1,152 @@
+// app/dashboard/ShiftModal.tsx
 'use client';
 
 import { useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { format, isSunday } from 'date-fns';
-import { ru } from 'date-fns/locale';
+import { useTranslation } from '@/lib/i18n';
 
-interface ShiftModalProps {
+const germanHolidays = [
+  '2025-01-01','2025-04-18','2025-04-21','2025-05-01','2025-05-29','2025-06-09','2025-10-03','2025-12-25','2025-12-26',
+  '2026-01-01','2026-04-03','2026-04-06','2026-05-01','2026-05-14','2026-05-25','2026-10-03','2026-12-25','2026-12-26',
+];
+
+interface Props {
   isOpen: boolean;
   onClose: () => void;
   selectedDate: string;
 }
 
-export default function ShiftModal({ isOpen, onClose, selectedDate }: ShiftModalProps) {
+export default function ShiftModal({ isOpen, onClose, selectedDate }: Props) {
   const [startTime, setStartTime] = useState('08:00');
   const [endTime, setEndTime] = useState('16:00');
   const [loading, setLoading] = useState(false);
 
+  const { t } = useTranslation();
+
   if (!isOpen) return null;
 
-  const isHoliday = false; // можно потом добавить
-  const isSundayDate = isSunday(new Date(selectedDate));
+  const calculateHours = () => {
+    if (!startTime || !endTime) return { day_hours: 0, night_hours: 0, total_hours: 0 };
 
-  const calculateHours = (start: string, end: string) => {
-    const [sh, sm] = start.split(':').map(Number);
-    const [eh, em] = end.split(':').map(Number);
-    let minutes = (eh * 60 + em) - (sh * 60 + sm);
-    if (minutes < 0) minutes += 24 * 60;
+    const start = new Date(`2000-01-01 ${startTime}`);
+    const end = new Date(`2000-01-01 ${endTime}`);
 
-    let dayHours = 0;
-    let nightHours = 0;
+    let totalMinutes = (end.getTime() - start.getTime()) / (1000 * 60);
+    if (totalMinutes < 0) totalMinutes += 24 * 60;
 
-    for (let i = 0; i < minutes; i += 30) {
-      const currentHour = (sh + Math.floor((sm + i) / 60)) % 24;
-      if (currentHour >= 6 && currentHour < 22) dayHours += 0.5;
-      else if (currentHour < 6) nightHours += 0.5;
+    const total_hours = Number((totalMinutes / 60).toFixed(2));
+
+    let day_hours = 0;
+    let night_hours = 0;
+
+    const startHour = parseInt(startTime.split(':')[0]);
+    const endHour = parseInt(endTime.split(':')[0]);
+
+    for (let h = startHour; h < startHour + 24; h++) {
+      const hour = h % 24;
+      const minutesInHour = Math.min(60, totalMinutes);
+
+      if (totalMinutes <= 0) break;
+
+      if (hour >= 6 && hour < 22) {
+        day_hours += minutesInHour / 60;
+      } else {
+        night_hours += minutesInHour / 60;
+      }
+      totalMinutes -= minutesInHour;
     }
 
-    return { dayHours: Number(dayHours.toFixed(2)), nightHours: Number(nightHours.toFixed(2)) };
+    const isHolidayDay = germanHolidays.includes(selectedDate);
+    const isSun = isSunday(new Date(selectedDate));
+
+    return {
+      day_hours: Number(day_hours.toFixed(2)),
+      night_hours: Number(night_hours.toFixed(2)),
+      total_hours: Number(total_hours.toFixed(2)),
+      sunday_hours: isSun ? Number(total_hours.toFixed(2)) : 0,
+      holiday_hours: isHolidayDay ? Number(total_hours.toFixed(2)) : 0,
+    };
   };
 
-  const handleSubmit = async () => {
-    if (!startTime || !endTime) {
-      alert('Введите время начала и окончания');
-      return;
-    }
+  const handleSave = async () => {
+    if (!selectedDate) return;
 
     setLoading(true);
 
-    const { dayHours, nightHours } = calculateHours(startTime, endTime);
+    const hours = calculateHours();
 
-    const { error } = await supabase.from('work_shifts').insert({
-      user_id: (await supabase.auth.getUser()).data.user?.id,
-      date: selectedDate,
-      start_time: startTime,
-      end_time: endTime,
-      day_hours: dayHours,
-      night_hours: nightHours,
-      total_hours: dayHours + nightHours,
-    });
+    const { error } = await supabase
+      .from('work_shifts')
+      .insert({
+        user_id: (await supabase.auth.getUser()).data.user?.id,
+        date: selectedDate,
+        start_time: startTime,
+        end_time: endTime,
+        day_hours: hours.day_hours,
+        night_hours: hours.night_hours,
+        total_hours: hours.total_hours,
+        sunday_hours: hours.sunday_hours,
+        holiday_hours: hours.holiday_hours,
+      });
 
-    if (error) alert('Ошибка: ' + error.message);
-    else {
-      alert('Смена успешно добавлена!');
-      onClose();
-    }
     setLoading(false);
+
+    if (error) {
+      alert('Ошибка при сохранении: ' + error.message);
+    } else {
+      alert(t('shiftModal.saveShift') + '!');
+      onClose();
+      window.location.reload();
+    }
   };
 
   return (
-    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
-      <div className="bg-zinc-900 rounded-3xl p-8 w-full max-w-md border border-zinc-700">
-        <h2 className="text-2xl font-bold mb-6 text-center">Добавление смены</h2>
+    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+      <div className="bg-zinc-900 rounded-3xl w-full max-w-md mx-auto overflow-hidden">
+        {/* Заголовок */}
+        <div className="px-6 py-5 border-b border-zinc-700 text-center bg-zinc-950">
+          <h2 className="text-xl font-semibold">{t('shiftModal.title')}</h2>
+          <p className="text-zinc-400 text-sm mt-1">{selectedDate}</p>
+        </div>
 
-        <p className="text-center text-zinc-400 mb-6">
-          {format(new Date(selectedDate), 'dd MMMM yyyy', { locale: ru })}
-          {isSundayDate && " 📅 Воскресенье"}
-        </p>
-
-        <div className="space-y-5">
+        {/* Форма */}
+        <div className="p-6 space-y-8">
           <div>
-            <label className="text-sm text-zinc-400">Начало смены</label>
-            <input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} className="w-full bg-zinc-800 border border-zinc-700 rounded-2xl px-5 py-4 text-lg" />
+            <label className="block text-sm text-zinc-400 mb-2">{t('shiftModal.startTime')}</label>
+            <input
+              type="time"
+              value={startTime}
+              onChange={(e) => setStartTime(e.target.value)}
+              className="w-full bg-zinc-800 border border-zinc-700 rounded-2xl px-5 py-5 text-white text-lg"
+            />
           </div>
+
           <div>
-            <label className="text-sm text-zinc-400">Конец смены</label>
-            <input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} className="w-full bg-zinc-800 border border-zinc-700 rounded-2xl px-5 py-4 text-lg" />
+            <label className="block text-sm text-zinc-400 mb-2">{t('shiftModal.endTime')}</label>
+            <input
+              type="time"
+              value={endTime}
+              onChange={(e) => setEndTime(e.target.value)}
+              className="w-full bg-zinc-800 border border-zinc-700 rounded-2xl px-5 py-5 text-white text-lg"
+            />
           </div>
         </div>
 
-        <div className="flex gap-3 mt-8">
-          <button onClick={onClose} className="flex-1 py-4 rounded-2xl border border-zinc-700 hover:bg-zinc-800">Отмена</button>
-          <button onClick={handleSubmit} disabled={loading} className="flex-1 py-4 bg-white text-black rounded-2xl font-medium hover:bg-zinc-200 disabled:opacity-50">
-            {loading ? 'Сохранение...' : 'Добавить смену'}
+        {/* Кнопки */}
+        <div className="flex border-t border-zinc-700">
+          <button
+            onClick={onClose}
+            className="flex-1 py-6 text-zinc-400 hover:bg-zinc-800 font-medium text-lg transition"
+          >
+            {t('common.cancel')}
+          </button>
+          <button
+            onClick={handleSave}
+            disabled={loading}
+            className="flex-1 py-6 bg-emerald-600 hover:bg-emerald-500 font-medium text-lg disabled:opacity-50 transition"
+          >
+            {loading ? t('schedule.saving') : t('shiftModal.saveShift')}
           </button>
         </div>
       </div>

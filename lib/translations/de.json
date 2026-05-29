@@ -1,0 +1,73 @@
+{
+  "common": {
+    "title": "Arbeitszeiterfassung",
+    "calendar": "Kalender",
+    "stats": "Statistik",
+    "logout": "Abmelden",
+    "adminPanel": "Admin-Panel",
+    "save": "Speichern",
+    "cancel": "Abbrechen",
+    "downloadExcel": "Excel herunterladen"
+  },
+  "login": {
+    "title": "Arbeitszeiterfassung",
+    "email": "E-Mail",
+    "password": "Passwort",
+    "login": "Anmelden"
+  },
+  "setup": {
+    "usernameTitle": "Wähle deinen Namen",
+    "usernameSubtitle": "Dieser Name wird dauerhaft verwendet",
+    "languageTitle": "Sprache auswählen",
+    "languageSubtitle": "Du kannst die Sprache später in den Einstellungen ändern",
+    "russian": "Russisch",
+    "german": "Deutsch",
+    "continue": "Weiter"
+  },
+  "dashboard": {
+    "noShifts": "Noch keine Schichten eingetragen",
+    "monthStats": "Monatsstatistik"
+  },
+  "stats": {
+    "monthStats": "Monatsstatistik",
+    "noShifts": "Noch keine Schichten eingetragen",
+    "table": {
+      "date": "Datum",
+      "start": "Beginn",
+      "end": "Ende",
+      "dayHours": "Tag",
+      "nightHours": "Nacht",
+      "sunday": "Sonntag",
+      "holiday": "Feiertag",
+      "total": "Gesamt"
+    }
+  },
+  "shiftModal": {
+    "title": "Schicht hinzufügen",
+    "date": "Datum",
+    "startTime": "Beginn",
+    "endTime": "Ende",
+    "saveShift": "Schicht speichern"
+  },
+  "admin": {
+    "title": "Admin-Panel",
+    "back": "Zurück",
+    "noShifts": "Noch keine Schichten vorhanden"
+  },
+  "schedule": {
+    "title": "Arbeitsplan",
+    "back": "Zurück zum Dashboard",
+    "myShift": "Meine Schicht",
+    "selectUser": "Benutzer auswählen",
+    "from": "Von",
+    "to": "Bis",
+    "saveShift": "Schicht speichern",
+    "saving": "Wird gespeichert...",
+    "alreadyPlanned": "Bereits geplant für diesen Tag",
+    "delete": "Löschen",
+    "update": "Aktualisieren",
+    "deleteConfirm": "Diese Schicht wirklich löschen?",
+    "noShiftsOnDate": "An diesem Tag arbeitet niemand",
+    "shiftsOnDateTitle": "Schichten am"
+}
+}
