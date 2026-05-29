@@ -34,26 +34,21 @@ export default function ScheduleViewModal({ isOpen, onClose, selectedDate, shift
 
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-      <div className="bg-zinc-900 rounded-3xl w-full max-w-lg mx-auto overflow-hidden max-h-[90vh] flex flex-col">
+      <div className="bg-zinc-900 rounded-3xl w-full max-w-lg mx-auto overflow-hidden">
         
-        {/* Заголовок */}
         <div className="px-6 py-5 border-b border-zinc-700 flex items-center justify-between bg-zinc-950">
-          <h2 className="text-xl sm:text-2xl font-semibold">
-            {t('schedule.shiftsOnDateTitle')} {format(new Date(selectedDate), 'dd.MM.yyyy', { locale: de })}
+          <h2 className="text-xl font-semibold">
+            Смены на {format(new Date(selectedDate), 'dd.MM.yyyy', { locale: de })}
           </h2>
-          <button 
-            onClick={onClose} 
-            className="p-3 hover:bg-zinc-800 rounded-2xl transition"
-          >
+          <button onClick={onClose} className="p-2 hover:bg-zinc-800 rounded-2xl">
             <X size={28} />
           </button>
         </div>
 
-        {/* Содержимое */}
-        <div className="flex-1 p-6 overflow-auto">
+        <div className="p-6 max-h-[60vh] overflow-auto">
           {sortedShifts.length === 0 ? (
             <div className="text-center py-20 text-zinc-400 text-lg">
-              {t('schedule.noShiftsOnDate')}
+              В этот день никто не работает
             </div>
           ) : (
             <div className="space-y-4">
@@ -71,13 +66,12 @@ export default function ScheduleViewModal({ isOpen, onClose, selectedDate, shift
           )}
         </div>
 
-        {/* Кнопка закрытия */}
         <div className="p-4 border-t border-zinc-700">
           <button
             onClick={onClose}
-            className="w-full py-5 text-white bg-zinc-800 hover:bg-zinc-700 rounded-3xl font-medium text-lg transition"
+            className="w-full py-5 text-white bg-zinc-800 hover:bg-zinc-700 rounded-3xl font-medium text-lg"
           >
-            {t('common.cancel')}
+            Закрыть
           </button>
         </div>
       </div>
