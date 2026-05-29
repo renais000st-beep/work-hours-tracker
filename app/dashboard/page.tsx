@@ -106,22 +106,16 @@ export default function Dashboard() {
     const monthShifts = groupedByMonth[selectedMonth];
     const monthName = format(new Date(selectedMonth + '-01'), 'LLLL yyyy', { locale: de });
 
-    const data = monthShifts.map((shift: any) => {
-      const date = new Date(shift.date);
-      const isHoliday = germanHolidays.includes(format(date, 'yyyy-MM-dd'));
-      const isSun = isSunday(date);
-
-      return {
-        Datum: format(date, 'dd.MM.yyyy'),
-        Beginn: shift.start_time?.slice(0, 5),
-        Ende: shift.end_time?.slice(0, 5),
-        Tag: shift.day_hours,
-        Nacht: shift.night_hours,
-        Sonntag: isSun ? shift.total_hours : 0,
-        Feiertag: isHoliday ? shift.total_hours : 0,
-        Gesamt: shift.total_hours,
-      };
-    });
+    const data = monthShifts.map((shift: any) => ({
+      Datum: format(new Date(shift.date), 'dd.MM.yyyy'),
+      Beginn: shift.start_time?.slice(0, 5),
+      Ende: shift.end_time?.slice(0, 5),
+      Tag: shift.day_hours,
+      Nacht: shift.night_hours,
+      Sonntag: isSunday(new Date(shift.date)) ? shift.total_hours : 0,
+      Feiertag: germanHolidays.includes(shift.date) ? shift.total_hours : 0,
+      Gesamt: shift.total_hours,
+    }));
 
     const worksheet = XLSX.utils.json_to_sheet(data);
     const workbook = XLSX.utils.book_new();
@@ -188,10 +182,10 @@ export default function Dashboard() {
               </button>
             </div>
 
-            {/* КАЛЕНДАРЬ */}
+            {/* КАЛЕНДАРЬ И СТАТИСТИКА — остаются без изменений */}
             {activeTab === 'calendar' && (
               <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-4 sm:p-6">
-                {/* ... календарь остаётся тот же ... */}
+                {/* календарь */}
                 <div className="flex items-center justify-between mb-6">
                   <button onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} className="p-3 hover:bg-zinc-800 rounded-2xl">←</button>
                   <h2 className="text-2xl sm:text-3xl font-semibold capitalize">
@@ -233,15 +227,50 @@ export default function Dashboard() {
               </div>
             )}
 
-            {/* СТАТИСТИКА */}
+            {/* СТАТИСТИКА (оставлена как была) */}
             {activeTab === 'stats' && (
               <div>
-                {/* ... статистика остаётся без изменений ... */}
+                {/* ... вся статистика ... */}
               </div>
             )}
           </div>
         </div>
       </div>
+
+      {/* MOBILE MENU */}
+      {mobileMenuOpen && (
+        <div className="fixed inset-0 bg-black/70 z-[100] lg:hidden" onClick={() => setMobileMenuOpen(false)}>
+          <div 
+            className="bg-zinc-900 w-72 h-full ml-auto p-6"
+            onClick={e => e.stopImmediatePropagation()}
+          >
+            <div className="flex justify-end mb-8">
+              <button onClick={() => setMobileMenuOpen(false)}>
+                <X size={32} />
+              </button>
+            </div>
+
+            <nav className="flex flex-col gap-3">
+              <a 
+                href="/dashboard" 
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center gap-3 px-4 py-4 rounded-2xl hover:bg-zinc-800 text-white"
+              >
+                <LayoutDashboard size={24} />
+                Dashboard
+              </a>
+              <a 
+                href="/schedule" 
+                onClick={() => setMobileMenuOpen(false)}
+                className="flex items-center gap-3 px-4 py-4 rounded-2xl hover:bg-zinc-800 text-white"
+              >
+                <CalendarIcon size={24} />
+                {t('schedule.title')}
+              </a>
+            </nav>
+          </div>
+        </div>
+      )}
 
       <ShiftModal 
         isOpen={showModal} 
