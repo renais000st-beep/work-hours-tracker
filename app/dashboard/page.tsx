@@ -267,6 +267,62 @@ export default function Dashboard() {
         <div className="w-8" />
       </div>
 
+      {/* ==================== МОБИЛЬНОЕ МЕНЮ ==================== */}
+{mobileMenuOpen && (
+  <div 
+    className="lg:hidden fixed inset-0 bg-black/80 z-[100]" 
+    onClick={() => setMobileMenuOpen(false)}
+  >
+    <div 
+      className="bg-zinc-900 w-72 h-full p-6 shadow-xl"
+      onClick={(e) => e.stopPropagation()}
+    >
+      <div className="flex justify-between items-center mb-8">
+        <h2 className="text-xl font-bold">{t('common.title')}</h2>
+        <button onClick={() => setMobileMenuOpen(false)} className="text-2xl">✕</button>
+      </div>
+
+      <nav className="flex flex-col gap-2">
+        <a 
+          href="/dashboard" 
+          className="flex items-center gap-3 px-4 py-4 rounded-2xl bg-zinc-800 text-white text-lg"
+          onClick={() => setMobileMenuOpen(false)}
+        >
+          <LayoutDashboard size={24} /> {t('common.dashboard')}
+        </a>
+        
+        <a 
+          href="/schedule" 
+          className="flex items-center gap-3 px-4 py-4 rounded-2xl hover:bg-zinc-800 text-white text-lg"
+          onClick={() => setMobileMenuOpen(false)}
+        >
+          <CalendarIcon size={24} /> {t('schedule.title')}
+        </a>
+
+        {profile?.is_admin && (
+          <a 
+            href="/admin" 
+            className="flex items-center gap-3 px-4 py-4 rounded-2xl hover:bg-zinc-800 text-violet-400 text-lg"
+            onClick={() => setMobileMenuOpen(false)}
+          >
+            <Shield size={24} /> {t('common.adminPanel')}
+          </a>
+        )}
+
+        <button 
+          onClick={() => {
+            supabase.auth.signOut().then(() => router.push('/login'));
+            setMobileMenuOpen(false);
+          }} 
+          className="flex items-center gap-3 px-4 py-4 rounded-2xl hover:bg-zinc-800 text-zinc-400 text-lg mt-4"
+        >
+          <LogOut size={24} /> {t('common.logout')}
+        </button>
+      </nav>
+    </div>
+  </div>
+)}
+
       <div className="flex">
         {/* SIDEBAR */}
         <div className="w-64 bg-zinc-900 border-r border-zinc-800 p-6 hidden lg:flex flex-col fixed h-full">
@@ -433,19 +489,19 @@ export default function Dashboard() {
 
                 {/* Вкладки месяцев */}
                 {monthList.length > 0 && (
-                  <div className="flex gap-2 overflow-x-auto pb-3 mb-4 hide-scrollbar">
+                  <div className="flex gap-2 overflow-x-auto pb-2 mb-4 hide-scrollbar">
                     {monthList.map((monthKey) => {
                       const monthName = format(new Date(monthKey + '-01'), 'LLLL yyyy', { locale: de });
                       const monthTotal = groupedByMonth[monthKey].reduce((sum: number, s: any) => sum + (s.total_hours || 0), 0);
                       return (
                         <button
-                          key={monthKey}
-                          onClick={() => setSelectedStatMonth(monthKey)}
-                          className={`px-6 py-3 rounded-2xl whitespace-nowrap transition-all text-sm font-medium border flex-shrink-0
-                            ${selectedStatMonth === monthKey ? 'bg-zinc-100 text-zinc-950 border-zinc-100' : 'border-zinc-700 hover:bg-zinc-800 text-zinc-400'}`}>
-                          {monthName}
-                          <span className="ml-2 text-xs opacity-70">({monthTotal} h)</span>
-                        </button>
+  key={monthKey}
+  onClick={() => setSelectedStatMonth(monthKey)}
+  className={`px-4 py-2.5 sm:px-6 sm:py-3 rounded-2xl whitespace-nowrap transition-all text-xs sm:text-sm font-medium border flex-shrink-0 active:scale-[0.985] ${
+    selectedStatMonth === monthKey ? 'bg-zinc-100 text-zinc-950 border-zinc-100' : 'border-zinc-700 hover:bg-zinc-800 text-zinc-400 active:bg-zinc-700'}`}>
+  {monthName}
+  <span className="ml-2 text-xs opacity-70">({monthTotal} h)</span>
+</button>
                       );
                     })}
                   </div>

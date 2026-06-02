@@ -94,8 +94,8 @@ export default function ShiftModal({ isOpen, onClose, selectedDate, group, onSav
 
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-      <div className="bg-zinc-900 rounded-3xl w-full max-w-md mx-auto overflow-hidden">
-        <div className="px-6 py-5 border-b border-zinc-700 text-center bg-zinc-950">
+      <div className="bg-zinc-900 rounded-3xl w-full max-w-md mx-auto overflow-hidden p-1 sm:p-0">
+        <div className="px-6 py-6 sm:py-5 border-b border-zinc-700 text-center bg-zinc-950">
           <h2 className="text-xl font-semibold">{t('shiftModal.title')}</h2>
           <p className="text-zinc-400 text-sm mt-1">{selectedDate}</p>
         </div>
@@ -103,22 +103,29 @@ export default function ShiftModal({ isOpen, onClose, selectedDate, group, onSav
         <div className="p-6 space-y-8">
           <div>
             <label className="block text-sm text-zinc-400 mb-2">{t('shiftModal.startTime')}</label>
-            <input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} className="w-full bg-zinc-800 border border-zinc-700 rounded-2xl px-5 py-5 text-white text-lg" />
+            <input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} className="w-full bg-zinc-800 border border-zinc-700 rounded-2xl px-5 py-6 sm:py-5 text-white text-xl sm:text-lg" />
           </div>
           <div>
             <label className="block text-sm text-zinc-400 mb-2">{t('shiftModal.endTime')}</label>
-            <input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} className="w-full bg-zinc-800 border border-zinc-700 rounded-2xl px-5 py-5 text-white text-lg" />
+            <input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} className="w-full bg-zinc-800 border border-zinc-700 rounded-2xl px-5 py-6 sm:py-5 text-white text-xl sm:text-lg" />
           </div>
         </div>
 
         <div className="flex border-t border-zinc-700">
-          <button onClick={onClose} className="flex-1 py-6 text-zinc-400 hover:bg-zinc-800 font-medium text-lg transition">
-            {t('shiftModal.cancel')}
-          </button>
-          <button onClick={handleSave} disabled={loading} className="flex-1 py-6 bg-emerald-600 hover:bg-emerald-500 font-medium text-lg disabled:opacity-50 transition">
-            {loading ? t('common.loading') : t('shiftModal.saveShift')}
-          </button>
-        </div>
+  <button
+    onClick={onClose}
+    className="flex-1 py-7 sm:py-6 text-zinc-400 hover:bg-zinc-800 font-medium text-lg active:bg-zinc-700 transition"
+  >
+    {t('shiftModal.cancel')}
+  </button>
+  <button
+    onClick={handleSave}
+    disabled={loading}
+    className="flex-1 py-7 sm:py-6 bg-emerald-600 hover:bg-emerald-500 font-medium text-lg active:bg-emerald-700 disabled:opacity-50 transition"
+  >
+    {loading ? t('common.loading') : t('shiftModal.saveShift')}
+  </button>
+</div>
       </div>
     </div>
   );
