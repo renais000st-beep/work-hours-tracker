@@ -1,4 +1,3 @@
-// app/login/page.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -11,18 +10,24 @@ export default function Login() {
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [selectedLanguage, setSelectedLanguage] = useState<'ru' | 'de'>('ru');
-  
+
   const router = useRouter();
   const { t, setLanguage } = useTranslation();
 
-  // Загружаем сохранённый язык
+  // Проверка — если уже залогинен, сразу на dashboard
   useEffect(() => {
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (session) {
+        router.push('/dashboard');
+      }
+    });
+
     const savedLang = localStorage.getItem('preferredLanguage') as 'ru' | 'de' | null;
     if (savedLang) {
       setSelectedLanguage(savedLang);
       setLanguage(savedLang);
     }
-  }, [setLanguage]);
+  }, [router, setLanguage]);
 
   const handleLanguageChange = (lang: 'ru' | 'de') => {
     setSelectedLanguage(lang);
@@ -34,25 +39,35 @@ export default function Login() {
     e.preventDefault();
     setLoading(true);
 
-    const { error } = await supabase.auth.signInWithPassword({
+    console.log("🔄 Попытка входа:", email);
+
+    const { data, error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
 
-    if (error) {
-      alert('Ошибка входа: ' + error.message);
-    } else {
-      router.push('/dashboard');
-    }
+    console.log("📡 Ответ от Supabase:", { data, error });
 
-    setLoading(false);
+    if (error) {
+      console.error("❌ Ошибка:", error.message);
+      alert('Ошибка входа: ' + error.message);
+      setLoading(false);
+    } else {
+      console.log("✅ Успешный вход! Переходим на dashboard...");
+      router.push('/dashboard');
+      router.refresh();
+
+      // Запасной вариант на случай проблем с Next Router
+      setTimeout(() => {
+        window.location.href = '/dashboard';
+      }, 400);
+    }
   };
 
   return (
     <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-4 sm:p-6">
       <div className="bg-zinc-900 w-full max-w-md mx-auto rounded-3xl border border-zinc-700 p-8 sm:p-10">
-        
-        {/* Заголовок */}
+
         <h1 className="text-3xl sm:text-4xl font-bold text-white mb-8 text-center">
           {t('login.title')}
         </h1>
@@ -61,20 +76,17 @@ export default function Login() {
         <div className="flex gap-2 bg-zinc-800 p-1.5 rounded-3xl mb-10">
           <button
             onClick={() => handleLanguageChange('ru')}
-            className={`flex-1 py-4 rounded-2xl font-medium transition flex items-center justify-center gap-2 text-base ${
-              selectedLanguage === 'ru' 
-                ? 'bg-white text-black shadow' 
-                : 'text-zinc-400 hover:bg-zinc-700'
+            className={`flex-1 py-4 rounded-2xl font-medium transition text-base ${
+              selectedLanguage === 'ru' ? 'bg-white text-black shadow font-semibold' : 'text-zinc-400 hover:bg-zinc-700'
             }`}
           >
             🇷🇺 Русский
           </button>
+
           <button
             onClick={() => handleLanguageChange('de')}
-            className={`flex-1 py-4 rounded-2xl font-medium transition flex items-center justify-center gap-2 text-base ${
-              selectedLanguage === 'de' 
-                ? 'bg-white text-black shadow' 
-                : 'text-zinc-400 hover:bg-zinc-700'
+            className={`flex-1 py-4 rounded-2xl font-medium transition text-base ${
+              selectedLanguage === 'de' ? 'bg-white text-black shadow font-semibold' : 'text-zinc-400 hover:bg-zinc-700'
             }`}
           >
             🇩🇪 Deutsch
@@ -83,9 +95,7 @@ export default function Login() {
 
         <form onSubmit={handleLogin} className="space-y-8">
           <div>
-            <label className="text-zinc-400 text-sm block mb-2">
-              {t('login.email')}
-            </label>
+            <label className="text-zinc-400 text-sm block mb-2">{t('login.email')}</label>
             <input
               type="email"
               value={email}
@@ -97,9 +107,7 @@ export default function Login() {
           </div>
 
           <div>
-            <label className="text-zinc-400 text-sm block mb-2">
-              {t('login.password')}
-            </label>
+            <label className="text-zinc-400 text-sm block mb-2">{t('login.password')}</label>
             <input
               type="password"
               value={password}

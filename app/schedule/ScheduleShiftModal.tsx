@@ -35,6 +35,19 @@ export default function ScheduleShiftModal({
   const [editingShiftId, setEditingShiftId] = useState<number | null>(null);
 
   const { t } = useTranslation();
+    // Автоматическое время по умолчанию в зависимости от группы
+  useEffect(() => {
+    if (!activeGroup) return;
+
+    if (activeGroup.toLowerCase().includes("ingo") || activeGroup.toLowerCase().includes("kuby")) {
+      setStartTime('10:00');
+      setEndTime('00:00');
+    } 
+    else if (activeGroup.toLowerCase().includes("stefan") || activeGroup.toLowerCase().includes("kasjutin")) {
+      setStartTime('07:00');
+      setEndTime('20:00');
+    }
+  }, [activeGroup]);
 
   // Загружаем пользователей текущей группы
   useEffect(() => {
@@ -111,7 +124,7 @@ export default function ScheduleShiftModal({
     setLoading(true);
 
     const selectedUser = users.find(u => u.id === selectedUserId);
-    const username = selectedUser ? selectedUser.username : 'Неизвестный пользователь';
+    const username = selectedUser ? selectedUser.username : t('schedule.unknownUser');
 
     const newShiftData = {
       id: editingShiftId || Date.now(),
@@ -161,7 +174,7 @@ export default function ScheduleShiftModal({
           <div className="px-6 py-4 border-b border-zinc-700 max-h-60 overflow-y-auto">
             <p className="text-xs text-zinc-400 mb-3">{t('schedule.alreadyPlanned')}</p>
             {shiftsOnDate.map((shift) => {
-              const userName = shift.username || 'Неизвестно';
+              const userName = shift.username || t('schedule.unknown');
               const isEditing = shift.id === editingShiftId;
 
               return (

@@ -38,7 +38,7 @@ export default function ScheduleViewModal({ isOpen, onClose, selectedDate, shift
         
         <div className="px-6 py-5 border-b border-zinc-700 flex items-center justify-between bg-zinc-950">
           <h2 className="text-xl font-semibold">
-            Смены на {format(new Date(selectedDate), 'dd.MM.yyyy', { locale: de })}
+            {t('schedule.Shifton')} {format(new Date(selectedDate), 'dd.MM.yyyy', { locale: de })}
           </h2>
           <button onClick={onClose} className="p-2 hover:bg-zinc-800 rounded-2xl">
             <X size={28} />
@@ -48,14 +48,14 @@ export default function ScheduleViewModal({ isOpen, onClose, selectedDate, shift
         <div className="p-6 max-h-[60vh] overflow-auto">
           {sortedShifts.length === 0 ? (
             <div className="text-center py-20 text-zinc-400 text-lg">
-              В этот день никто не работает
+              {t('schedule.nodaywork')}
             </div>
           ) : (
             <div className="space-y-4">
               {sortedShifts.map((shift, i) => (
                 <div key={i} className="bg-zinc-800 rounded-3xl p-5 flex justify-between items-center">
                   <div className="font-medium text-white text-lg">
-                    {shift.username || 'Неизвестный пользователь'}
+                    {shift.username || t('schedule.unknownUser')}
                   </div>
                   <div className="font-mono text-emerald-400 text-xl">
                     {(shift.startTime || shift.start_time || '—')} — {(shift.endTime || shift.end_time || '—')}
@@ -71,7 +71,7 @@ export default function ScheduleViewModal({ isOpen, onClose, selectedDate, shift
             onClick={onClose}
             className="w-full py-5 text-white bg-zinc-800 hover:bg-zinc-700 rounded-3xl font-medium text-lg"
           >
-            Закрыть
+            {t('schedule.close')}
           </button>
         </div>
       </div>

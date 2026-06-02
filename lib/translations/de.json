@@ -3,41 +3,51 @@
     "title": "Arbeitszeiterfassung",
     "calendar": "Kalender",
     "stats": "Statistik",
-    "logout": "Abmelden",
+    "logout": "Ausloggen",
     "adminPanel": "Admin-Panel",
     "save": "Speichern",
     "cancel": "Abbrechen",
-    "downloadExcel": "Excel herunterladen"
+    "downloadExcel": "Excel herunterladen",
+    "downloadPDF": "PDF herunterladen",
+    "dashboard": "Dashboard",
+    "deleteConfirm": "Möchten Sie diese Schicht wirklich löschen?",
+    "noData": "Keine Daten"
   },
   "login": {
     "title": "Arbeitszeiterfassung",
-    "email": "E-Mail",
+    "email": "Email",
     "password": "Passwort",
     "login": "Anmelden"
   },
   "setup": {
-    "usernameTitle": "Wähle deinen Namen",
+    "usernameTitle": "Wählen Sie Ihren Namen",
     "usernameSubtitle": "Dieser Name wird dauerhaft verwendet",
-    "languageTitle": "Sprache auswählen",
-    "languageSubtitle": "Du kannst die Sprache später in den Einstellungen ändern",
+    "languageTitle": "Wählen Sie die Sprache",
+    "languageSubtitle": "Sie können die Sprache später in den Einstellungen ändern",
     "russian": "Russisch",
     "german": "Deutsch",
-    "continue": "Weiter"
+    "continue": "Weiter",
+    "NameUsed": "Name bereits verwendet",
+    "Error": "Fehler: ",
+    "savedUsername": "Benutzername erfolgreich gespeichert!",
+    "loading": "Wird geladen..."
   },
   "dashboard": {
     "noShifts": "Noch keine Schichten eingetragen",
-    "monthStats": "Monatsstatistik"
+    "monthStats": "Monatsstatistik",
+    "all": "Alle",
+    "hours": "Stunden"
   },
   "stats": {
     "monthStats": "Monatsstatistik",
     "noShifts": "Noch keine Schichten eingetragen",
     "table": {
       "date": "Datum",
-      "start": "Beginn",
-      "end": "Ende",
+      "start": "Von",
+      "end": "Bis",
       "dayHours": "Tag",
       "nightHours": "Nacht",
-      "sunday": "Sonntag",
+      "sunday": "So",
       "holiday": "Feiertag",
       "total": "Gesamt"
     }
@@ -45,29 +55,149 @@
   "shiftModal": {
     "title": "Schicht hinzufügen",
     "date": "Datum",
-    "startTime": "Beginn",
-    "endTime": "Ende",
-    "saveShift": "Schicht speichern"
+    "startTime": "Von",
+    "loading": "Wird geladen...",
+    "endTime": "Bis",
+    "saveShift": "Schicht speichern",
+    "cancel": "Abbrechen"
   },
   "admin": {
-    "title": "Admin-Panel",
+    "table": {
+      "User": "Benutzer",
+      "date": "Datum",
+      "time": "Uhrzeit",
+      "total": "Gesamt",
+      "actions": "Aktionen"
+      },
+    "Modal": {
+      "addGroup": "Gruppe hinzufügen",
+      "User": "Benutzer",
+      "role": "Rolle",
+      "Groups": "Gruppen",
+      "actions": "Aktionen",
+      "editUsers": "Benutzer bearbeiten"
+      },
+    "newUserModal": {
+      "title": "Neuer Benutzer",
+      "email": "Email",
+      "password": "Passwort",
+      "role": "Rolle",
+      "groups": "Gruppen (Mehrfachauswahl möglich)",
+      "create": "Benutzer erstellen"
+      },
+      "Alert": {
+       "shiftdeleted": "Schicht erfolgreich gelöscht",
+      "errordelete": "Fehler beim Löschen: ",
+       "confirmdelete": "Möchten Sie diese Schicht wirklich löschen?",
+      "errordeleteGroup": "Fehler beim Löschen der Gruppe: ",
+      "groupDeleted": "Gruppe erfolgreich gelöscht",
+      "groupNotFound": "Gruppe nicht gefunden",
+      "NewRoleError": "Fehler beim Aktualisieren der Rolle: ",
+      "confirmdeleteUser": "Möchten Sie diesen Benutzer wirklich löschen?",
+      "Error": "Fehler: ",
+      "success": "Erfolgreich erstellt!",
+      "nameGroup": "Gruppenname eingeben",
+      "group": "Gruppe",
+      "User": "Benutzer",
+      "noUserConfirm": "Fehler beim Erstellen des Benutzers",
+      "writeEmail": "Email und Passwort eingeben",
+      "noAllert": "Zugriff verweigert"
+      },
+      "newGroupModal": {
+      "GroupName": "Gruppenname",
+      "addNewGroup": "Neue Gruppe erstellen",
+      "loading": "Wird geladen...",
+      "cancel": "Abbrechen"
+      },
+    "title": "Admin Panel",
     "back": "Zurück",
-    "noShifts": "Noch keine Schichten vorhanden"
+    "noShifts": "Noch keine Schichten vorhanden",
+    "editUsers": "Benutzer bearbeiten",
+    "newUser": "Neuer Benutzer",
+    "newGroup": "Neue Gruppe",
+    "allGroups": "Alle Gruppen",
+    "allMonths": "Alle Monate",
+    "allUsers": "Alle Benutzer",
+    "role": "Rolle",
+    "groups": "Gruppen",
+    "downloadExcel": "Excel herunterladen",
+    "downloadPDF": "PDF herunterladen",
+    "delete": "Löschen",
+    "close": "Schließen",
+    "shifts": "Schichten",
+    "records": "Einträge",
+    "cancel": "Abbrechen",
+    "loading": "Wird geladen...",
+    "addGroup": "Gruppe erstellen",
+    "GroupName": "Gruppenname",
+    "addNewGroup": "Neue Gruppe erstellen",
+    "createNewUser": "Neuen Benutzer erstellen",
+    "firstcreategroup": "Zuerst Gruppen erstellen",
+    "choose": "kann mehrere auswählen",
+    "unknown": "unbekannt",
+    "logout": "Ausloggen",
+    "backtoDashboard": "Zurück zum Dashboard",
+    "loadAdminData": "Admin-Panel wird geladen..."
+    
+  },
+  "editUsers": {
+      "title": "Benutzer bearbeiten",
+      "user": "Benutzer",
+    "role": "Rolle",
+    "groups": "Gruppen",
+    "actions": "Aktionen",
+    "addGroup": "+ Gruppe hinzufügen...",
+    "deleteUserConfirm": "Möchten Sie diesen Benutzer wirklich löschen?"
+  },
+  "newUserModal": {
+    "title": "Neuer Benutzer",
+    "email": "Email",
+    "password": "Passwort",
+    "role": "Rolle",
+    "groups": "Gruppen (Mehrfachauswahl möglich)",
+    "create": "Benutzer erstellen"
+  },
+  "newGroupModal": {
+    "title": "Neue Gruppe erstellen",
+    "placeholder": "Gruppenname",
+    "create": "Gruppe erstellen",
+    "cancel": "Abbrechen"
   },
   "schedule": {
-    "title": "Arbeitsplan",
+    "title": "Dienstplan",
     "back": "Zurück zum Dashboard",
-    "myShift": "Meine Schicht",
+    "myShift": "Meine",
     "selectUser": "Benutzer auswählen",
     "from": "Von",
+    "unknown": "unbekannt",
+    "unknownUser": "unbekannter Benutzer",
+    "close": "Schließen",
+    "Shifton": "Schichten am",
+    "nodaywork": "In diesem Tag arbeitet niemand",
     "to": "Bis",
+    "dashboard": "Dashboard",
+    "noGroupaccess": "Kein Zugriff auf Gruppen",
     "saveShift": "Schicht speichern",
     "saving": "Wird gespeichert...",
-    "alreadyPlanned": "Bereits geplant für diesen Tag",
+    "alreadyPlanned": "Bereits geplant",
     "delete": "Löschen",
+    "user": "Benutzer",
     "update": "Aktualisieren",
-    "deleteConfirm": "Diese Schicht wirklich löschen?",
-    "noShiftsOnDate": "An diesem Tag arbeitet niemand",
-    "shiftsOnDateTitle": "Schichten am"
-}
+    "deleteConfirm": "Diese Schicht löschen?",
+    "Note": {
+      "noMonthNote": "Bisher keine Notizen für diesen Monat",
+      "user": "Benutzer",
+      "clear": "Löschen",
+      "save": "Speichern",
+      "writeMonthNote": "Schreibe eine Notiz für diesen Monat...",
+      "Notes": "Notizen"
+      },
+    "Alert": {
+      "notedeleted": "Notiz gelöscht",
+      "notesaved": "Notiz gespeichert",
+      "deleteNote": "Diese Notiz löschen?",
+      "chooseGroup": "Gruppe auswählen",
+      "writeNote": "Notiz schreiben"
+      }
+  }
 }

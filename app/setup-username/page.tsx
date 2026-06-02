@@ -62,12 +62,12 @@ export default function SetupUsername() {
 
     if (upsertError) {
       if (upsertError.code === '23505') {
-        setError('Такое имя уже занято. Придумай другое.');
+        setError(t('setup.NameUsed'));
       } else {
-        setError('Ошибка: ' + upsertError.message);
+        setError(t('setup.Error') + upsertError.message);
       }
     } else {
-      console.log('✅ Username и язык сохранены!');
+      console.log('✅ ' + t('setup.savedUsername'));
       window.location.href = '/dashboard';
     }
 
@@ -106,7 +106,7 @@ export default function SetupUsername() {
             disabled={loading}
             className="w-full py-6 bg-white text-black rounded-3xl font-semibold text-xl hover:bg-zinc-200 disabled:opacity-50 transition"
           >
-            {loading ? 'Сохраняем...' : t('common.save')}
+            {loading ? t('setup.loading') : t('common.save')}
           </button>
         </form>
       </div>

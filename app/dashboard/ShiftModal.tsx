@@ -1,8 +1,6 @@
-// app/dashboard/ShiftModal.tsx
 'use client';
 
-import { useState } from 'react';
-import { supabase } from '@/lib/supabase';
+import { useState, useEffect } from 'react';
 import { format, isSunday } from 'date-fns';
 import { useTranslation } from '@/lib/i18n';
 
@@ -15,19 +13,28 @@ interface Props {
   isOpen: boolean;
   onClose: () => void;
   selectedDate: string;
+  group: string;
+  onSave: (shiftData: any) => void;
 }
 
-export default function ShiftModal({ isOpen, onClose, selectedDate }: Props) {
-  const [startTime, setStartTime] = useState('08:00');
-  const [endTime, setEndTime] = useState('16:00');
+export default function ShiftModal({ isOpen, onClose, selectedDate, group, onSave }: Props) {
+  const [startTime, setStartTime] = useState('07:00');
+  const [endTime, setEndTime] = useState('20:00');
   const [loading, setLoading] = useState(false);
 
   const { t } = useTranslation();
 
+  useEffect(() => {
+    if (isOpen) {
+      setStartTime('07:00');
+      setEndTime('20:00');
+    }
+  }, [isOpen]);
+
   if (!isOpen) return null;
 
   const calculateHours = () => {
-    if (!startTime || !endTime) return { day_hours: 0, night_hours: 0, total_hours: 0 };
+    if (!startTime || !endTime) return { day_hours: 0, night_hours: 0, total_hours: 0, sunday_hours: 0, holiday_hours: 0 };
 
     const start = new Date(`2000-01-01 ${startTime}`);
     const end = new Date(`2000-01-01 ${endTime}`);
@@ -39,14 +46,11 @@ export default function ShiftModal({ isOpen, onClose, selectedDate }: Props) {
 
     let day_hours = 0;
     let night_hours = 0;
-
     const startHour = parseInt(startTime.split(':')[0]);
-    const endHour = parseInt(endTime.split(':')[0]);
 
     for (let h = startHour; h < startHour + 24; h++) {
       const hour = h % 24;
       const minutesInHour = Math.min(60, totalMinutes);
-
       if (totalMinutes <= 0) break;
 
       if (hour >= 6 && hour < 22) {
@@ -69,84 +73,50 @@ export default function ShiftModal({ isOpen, onClose, selectedDate }: Props) {
     };
   };
 
-  const handleSave = async () => {
-    if (!selectedDate) return;
-
-    setLoading(true);
-
+  const handleSave = () => {
     const hours = calculateHours();
 
-    const { error } = await supabase
-      .from('work_shifts')
-      .insert({
-        user_id: (await supabase.auth.getUser()).data.user?.id,
-        date: selectedDate,
-        start_time: startTime,
-        end_time: endTime,
-        day_hours: hours.day_hours,
-        night_hours: hours.night_hours,
-        total_hours: hours.total_hours,
-        sunday_hours: hours.sunday_hours,
-        holiday_hours: hours.holiday_hours,
-      });
+    const shiftData = {
+      date: selectedDate,
+      start_time: startTime,
+      end_time: endTime,
+      day_hours: hours.day_hours,
+      night_hours: hours.night_hours,
+      total_hours: hours.total_hours,
+      sunday_hours: hours.sunday_hours,
+      holiday_hours: hours.holiday_hours,
+      group: group,
+    };
 
-    setLoading(false);
-
-    if (error) {
-      alert('Ошибка при сохранении: ' + error.message);
-    } else {
-      alert(t('shiftModal.saveShift') + '!');
-      onClose();
-      window.location.reload();
-    }
+    onSave(shiftData);
+    onClose();
   };
 
   return (
     <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
       <div className="bg-zinc-900 rounded-3xl w-full max-w-md mx-auto overflow-hidden">
-        {/* Заголовок */}
         <div className="px-6 py-5 border-b border-zinc-700 text-center bg-zinc-950">
           <h2 className="text-xl font-semibold">{t('shiftModal.title')}</h2>
           <p className="text-zinc-400 text-sm mt-1">{selectedDate}</p>
         </div>
 
-        {/* Форма */}
         <div className="p-6 space-y-8">
           <div>
             <label className="block text-sm text-zinc-400 mb-2">{t('shiftModal.startTime')}</label>
-            <input
-              type="time"
-              value={startTime}
-              onChange={(e) => setStartTime(e.target.value)}
-              className="w-full bg-zinc-800 border border-zinc-700 rounded-2xl px-5 py-5 text-white text-lg"
-            />
+            <input type="time" value={startTime} onChange={(e) => setStartTime(e.target.value)} className="w-full bg-zinc-800 border border-zinc-700 rounded-2xl px-5 py-5 text-white text-lg" />
           </div>
-
           <div>
             <label className="block text-sm text-zinc-400 mb-2">{t('shiftModal.endTime')}</label>
-            <input
-              type="time"
-              value={endTime}
-              onChange={(e) => setEndTime(e.target.value)}
-              className="w-full bg-zinc-800 border border-zinc-700 rounded-2xl px-5 py-5 text-white text-lg"
-            />
+            <input type="time" value={endTime} onChange={(e) => setEndTime(e.target.value)} className="w-full bg-zinc-800 border border-zinc-700 rounded-2xl px-5 py-5 text-white text-lg" />
           </div>
         </div>
 
-        {/* Кнопки */}
         <div className="flex border-t border-zinc-700">
-          <button
-            onClick={onClose}
-            className="flex-1 py-6 text-zinc-400 hover:bg-zinc-800 font-medium text-lg transition"
-          >
-            {t('common.cancel')}
+          <button onClick={onClose} className="flex-1 py-6 text-zinc-400 hover:bg-zinc-800 font-medium text-lg transition">
+            {t('shiftModal.cancel')}
           </button>
-          <button
-            onClick={handleSave}
-            disabled={loading}
-            className="flex-1 py-6 bg-emerald-600 hover:bg-emerald-500 font-medium text-lg disabled:opacity-50 transition"
-          >
-            {loading ? t('schedule.saving') : t('shiftModal.saveShift')}
+          <button onClick={handleSave} disabled={loading} className="flex-1 py-6 bg-emerald-600 hover:bg-emerald-500 font-medium text-lg disabled:opacity-50 transition">
+            {loading ? t('common.loading') : t('shiftModal.saveShift')}
           </button>
         </div>
       </div>
