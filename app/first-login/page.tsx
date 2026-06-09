@@ -32,7 +32,7 @@ export default function FirstLogin() {
       alert('Ошибка: ' + error.message);
     } else {
       alert('Данные сохранены!');
-      window.location.href = '/dashboard';   // Полная перезагрузка — самое надёжное
+      router.push('/dashboard');
     }
 
     setLoading(false);

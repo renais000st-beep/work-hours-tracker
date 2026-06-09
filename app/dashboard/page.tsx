@@ -6,36 +6,27 @@ import { useRouter } from 'next/navigation';
 import { useTranslation } from '@/lib/i18n';
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, startOfWeek, isSameMonth } from 'date-fns';
 import { de } from 'date-fns/locale';
-import { LogOut, LayoutDashboard, Calendar as CalendarIcon, BarChart3, Trash2, Download, Shield, Menu } from 'lucide-react';
+import { LogOut, Link, LayoutDashboard, Calendar as CalendarIcon, BarChart3, Trash2, Download, Shield, Menu } from 'lucide-react';
 import ShiftModal from './ShiftModal';
 import * as XLSX from 'xlsx';
 
-const germanHolidays = [
-  '2025-01-01','2025-04-18','2025-04-21','2025-05-01','2025-05-29','2025-06-09','2025-10-03','2025-12-25','2025-12-26',
-  '2026-01-01','2026-04-03','2026-04-06','2026-05-01','2026-05-14','2026-05-25','2026-10-03','2026-12-25','2026-12-26',
-];
-
 export default function Dashboard() {
-  const [user, setUser] = useState<any>(null);
   const [profile, setProfile] = useState<any>(null);
   const [activeTab, setActiveTab] = useState<'calendar' | 'stats'>('calendar');
   const [currentMonth, setCurrentMonth] = useState(new Date());
   const [showModal, setShowModal] = useState(false);
   const [selectedDate, setSelectedDate] = useState('');
   const [shifts, setShifts] = useState<any[]>([]);
-  
-  // Группы и вкладки календаря
-  const [userGroups, setUserGroups] = useState<string[]>([]);
-  const [userAccessibleGroups, setUserAccessibleGroups] = useState<string[]>([]); // все группы пользователя
-  const [selectedCalendarGroup, setSelectedCalendarGroup] = useState<string>(''); // текущая выбранная группа для календаря
-  const [selectedStatsGroup, setSelectedStatsGroup] = useState<string>('all');   // для статистики
-  const [calendarGroup, setCalendarGroup] = useState<'ingo' | 'stefan'>('ingo');
 
-  const [statsFilter, setStatsFilter] = useState<'all' | 'ingo' | 'stefan'>('all');
+  const [userAccessibleGroups, setUserAccessibleGroups] = useState<string[]>([]);
+  const [selectedCalendarGroup, setSelectedCalendarGroup] = useState<string>('');
+  const [selectedStatsGroup, setSelectedStatsGroup] = useState<string>('all');
+
   const [selectedStatMonth, setSelectedStatMonth] = useState<string>('');
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const [hasTelegramLinked, setHasTelegramLinked] = useState(false);
 
-    const handleDateClick = (date: string) => {
+  const handleDateClick = (date: string) => {
     setSelectedDate(date);
     setShowModal(true);
   };
@@ -47,7 +38,7 @@ export default function Dashboard() {
     loadData();
   }, []);
 
-      const loadData = async () => {
+  const loadData = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) return router.push('/login');
@@ -60,12 +51,19 @@ export default function Dashboard() {
 
       setProfile(prof);
 
+      const { data: telegramUser } = await supabase
+        .from('telegram_users')
+        .select('id')
+        .eq('profile_id', user.id)
+        .single();
+
+      setHasTelegramLinked(!!telegramUser);
+
       if (!prof?.username) {
         router.push('/setup-username');
         return;
       }
 
-      // Загрузка групп пользователя
       const { data: ugData } = await supabase
         .from('user_groups')
         .select(`groups (name)`)
@@ -74,7 +72,6 @@ export default function Dashboard() {
       const groups = (ugData as any[])?.map(item => item.groups?.name).filter(Boolean) || [];
       setUserAccessibleGroups(groups);
 
-      // Загрузка смен
       const { data } = await supabase
         .from('work_shifts')
         .select('*')
@@ -88,54 +85,52 @@ export default function Dashboard() {
     }
   };
 
-    const handleDeleteShift = async (id: number) => {
+  const handleDeleteShift = async (id: number) => {
     if (!confirm(t('common.deleteConfirm'))) return;
 
-    // ←←← Сохраняем текущую вкладку статистики
     const currentStatsGroup = selectedStatsGroup;
 
     const { error } = await supabase.from('work_shifts').delete().eq('id', id);
 
     if (!error) {
       await loadData();
-
-      // ←←← Восстанавливаем вкладку, в которой был пользователь
       setSelectedStatsGroup(currentStatsGroup);
+    } else {
+      alert(t('errors.deleteFailed'));
     }
   };
 
-   const handleSaveShift = async (shiftData: any) => {
-  const currentGroup = selectedCalendarGroup;
+  const handleSaveShift = async (shiftData: any) => {
+    const currentGroup = selectedCalendarGroup;
 
-  const { data: { user } } = await supabase.auth.getUser();
-  
-  const { error } = await supabase
-    .from('work_shifts')
-    .insert({
-      ...shiftData,
-      user_id: user?.id,
-      group: currentGroup
-    });
+    const { data: { user } } = await supabase.auth.getUser();
 
-  if (error) {
-    alert("Ошибка сохранения: " + error.message);
-  } else {
-    await loadData();
-    setTimeout(() => {
+    const { error } = await supabase
+      .from('work_shifts')
+      .insert({
+        ...shiftData,
+        user_id: user?.id,
+        group: currentGroup
+      });
+
+    if (error) {
+      alert(t('errors.saveFailed') + error.message);
+    } else {
+      await loadData();
       setSelectedCalendarGroup(currentGroup);
-    }, 100);
-  }
-};
-  // Автоматически выбираем первую доступную группу при загрузке страницы
+    }
+  };
+
   useEffect(() => {
     if (userAccessibleGroups.length > 0 && !selectedCalendarGroup) {
       setSelectedCalendarGroup(userAccessibleGroups[0]);
     }
   }, [userAccessibleGroups, selectedCalendarGroup]);
-    const hasShift = (dateStr: string) => {
-    return shifts.some(s => 
-      s.date === dateStr && 
-      s.group === selectedCalendarGroup   // теперь сравниваем с реальной выбранной группой
+
+  const hasShift = (dateStr: string) => {
+    return shifts.some(s =>
+      s.date === dateStr &&
+      s.group === selectedCalendarGroup
     );
   };
 
@@ -154,17 +149,15 @@ export default function Dashboard() {
         setSelectedStatMonth(monthList[0]);
       }
     }
-  }, [activeTab, statsFilter, monthList]);
+  }, [activeTab, monthList]);
 
-    const getFilteredShifts = () => {
+  const getFilteredShifts = () => {
     let result = shifts;
 
-    // Фильтруем по выбранной группе в статистике
     if (selectedStatsGroup !== 'all') {
       result = result.filter(s => s.group === selectedStatsGroup);
     }
 
-    // Фильтруем по выбранному месяцу
     if (selectedStatMonth) {
       result = result.filter(s => s.date.startsWith(selectedStatMonth));
     }
@@ -174,10 +167,9 @@ export default function Dashboard() {
 
   const filteredShifts = getFilteredShifts();
 
-    // ==================== СКАЧИВАНИЕ ====================
   const downloadExcel = () => {
     if (filteredShifts.length === 0) {
-      alert(t('common.calendar'));
+      alert(t('common.noData'));
       return;
     }
 
@@ -196,11 +188,11 @@ export default function Dashboard() {
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Смены");
 
-    const name = statsFilter === 'all' ? 'Alle' : statsFilter === 'ingo' ? 'Ingo' : 'Stefan';
-    XLSX.writeFile(wb, `Arbeitszeiten_${name}_${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
+    const groupLabel = selectedStatsGroup === 'all' ? 'Alle' : selectedStatsGroup;
+    XLSX.writeFile(wb, `Arbeitszeiten_${groupLabel}_${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
   };
 
-    const downloadPDF = () => {
+  const downloadPDF = () => {
     if (filteredShifts.length === 0) {
       alert(t('common.noData'));
       return;
@@ -209,8 +201,10 @@ export default function Dashboard() {
     const printWindow = window.open('', '_blank');
     if (!printWindow) return;
 
+    const groupLabel = selectedStatsGroup === 'all' ? 'Alle' : selectedStatsGroup;
+
     let tableHTML = `
-      <h1 style="text-align:center; font-family:Arial;">Arbeitszeiten — ${statsFilter === 'all' ? 'Alle' : statsFilter === 'ingo' ? 'Ingo Kuby' : 'Stefan Kasjutin'}</h1>
+      <h1 style="text-align:center; font-family:Arial;">Arbeitszeiten — ${groupLabel}</h1>
       <p style="text-align:center;">${selectedStatMonth ? format(new Date(selectedStatMonth + '-01'), 'LLLL yyyy', { locale: de }) : 'Alle Monate'} | ${new Date().toLocaleDateString('de-DE')}</p>
       <table border="1" cellpadding="8" cellspacing="0" style="width:100%; border-collapse:collapse; font-family:Arial; margin-top:20px;">
         <thead>
@@ -251,6 +245,39 @@ export default function Dashboard() {
     }, 500);
   };
 
+  const handleTelegramLink = async () => {
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) {
+        alert(t('errors.notAuthorized'));
+        return;
+      }
+
+      const token = crypto.randomUUID();
+      const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
+
+      const { error } = await supabase
+        .from('telegram_link_tokens')
+        .insert({
+          profile_id: user.id,
+          token: token,
+          expires_at: expiresAt,
+        });
+
+      if (error) {
+        alert(t('errors.telegramLinkFailed'));
+        return;
+      }
+
+      const telegramLink = `https://t.me/work_hours_sozialbaer_bot?start=verify_${token}`;
+      window.open(telegramLink, '_blank');
+
+    } catch (err) {
+      console.error('Ошибка при создании ссылки:', err);
+      alert(t('errors.generic'));
+    }
+  };
+
   const days = eachDayOfInterval({
     start: startOfWeek(startOfMonth(currentMonth), { weekStartsOn: 1 }),
     end: endOfMonth(currentMonth),
@@ -269,11 +296,11 @@ export default function Dashboard() {
 
       {/* ==================== МОБИЛЬНОЕ МЕНЮ ==================== */}
 {mobileMenuOpen && (
-  <div 
-    className="lg:hidden fixed inset-0 bg-black/80 z-[100]" 
+  <div
+    className="lg:hidden fixed inset-0 bg-black/80 z-[100]"
     onClick={() => setMobileMenuOpen(false)}
   >
-    <div 
+    <div
       className="bg-zinc-900 w-72 h-full p-6 shadow-xl"
       onClick={(e) => e.stopPropagation()}
     >
@@ -283,16 +310,16 @@ export default function Dashboard() {
       </div>
 
       <nav className="flex flex-col gap-2">
-        <a 
-          href="/dashboard" 
+        <a
+          href="/dashboard"
           className="flex items-center gap-3 px-4 py-4 rounded-2xl bg-zinc-800 text-white text-lg"
           onClick={() => setMobileMenuOpen(false)}
         >
           <LayoutDashboard size={24} /> {t('common.dashboard')}
         </a>
-        
-        <a 
-          href="/schedule" 
+
+        <a
+          href="/schedule"
           className="flex items-center gap-3 px-4 py-4 rounded-2xl hover:bg-zinc-800 text-white text-lg"
           onClick={() => setMobileMenuOpen(false)}
         >
@@ -300,8 +327,8 @@ export default function Dashboard() {
         </a>
 
         {profile?.is_admin && (
-          <a 
-            href="/admin" 
+          <a
+            href="/admin"
             className="flex items-center gap-3 px-4 py-4 rounded-2xl hover:bg-zinc-800 text-violet-400 text-lg"
             onClick={() => setMobileMenuOpen(false)}
           >
@@ -309,11 +336,11 @@ export default function Dashboard() {
           </a>
         )}
 
-        <button 
+        <button
           onClick={() => {
             supabase.auth.signOut().then(() => router.push('/login'));
             setMobileMenuOpen(false);
-          }} 
+          }}
           className="flex items-center gap-3 px-4 py-4 rounded-2xl hover:bg-zinc-800 text-zinc-400 text-lg mt-4"
         >
           <LogOut size={24} /> {t('common.logout')}
@@ -338,16 +365,32 @@ export default function Dashboard() {
             </a>
           </nav>
 
-          <div className="mt-auto pt-6 border-t border-zinc-700 space-y-2">
-            {profile?.is_admin && (
-              <button onClick={() => router.push('/admin')} className="flex items-center gap-3 px-4 py-3 w-full text-violet-400 hover:bg-zinc-800 rounded-2xl">
-                <Shield size={20} /> {t('common.adminPanel')}
-              </button>
-            )}
-            <button onClick={() => supabase.auth.signOut().then(() => router.push('/login'))} className="flex items-center gap-3 px-4 py-3 w-full text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-2xl">
-              <LogOut size={20} /> {t('common.logout')}
-            </button>
-          </div>
+         <div className="mt-auto pt-6 border-t border-zinc-700 space-y-2">
+  {!hasTelegramLinked && (
+    <div className="px-4 py-3 w-full rounded-2xl opacity-50 cursor-not-allowed">
+      <div className="flex items-center gap-3 text-emerald-400">
+        <Link size={20} /> {t('common.telegram')}
+      </div>
+      <p className="text-xs text-zinc-500 mt-0.5 ml-8">{t('common.telegramWip')}</p>
+    </div>
+  )}
+
+  {profile?.is_admin && (
+    <button
+      onClick={() => router.push('/admin')}
+      className="flex items-center gap-3 px-4 py-3 w-full text-violet-400 hover:bg-zinc-800 rounded-2xl"
+    >
+      <Shield size={20} /> {t('common.adminPanel')}
+    </button>
+  )}
+
+  <button
+    onClick={() => supabase.auth.signOut().then(() => router.push('/login'))}
+    className="flex items-center gap-3 px-4 py-3 w-full text-zinc-400 hover:text-white hover:bg-zinc-800 rounded-2xl"
+  >
+    <LogOut size={20} /> {t('common.logout')}
+  </button>
+</div>
         </div>
 
         {/* MAIN CONTENT */}
@@ -366,25 +409,24 @@ export default function Dashboard() {
             {/* ==================== КАЛЕНДАРЬ ==================== */}
             {activeTab === 'calendar' && (
               <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-4 sm:p-6">
-                            {/* Динамический переключатель групп для календаря */}
-            {activeTab === 'calendar' && userAccessibleGroups.length > 0 && (
-              <div className="flex bg-zinc-900 p-1 rounded-3xl w-fit mb-6 overflow-x-auto">
-                {userAccessibleGroups.map(group => (
-                  <button 
-                    key={group}
-                    onClick={() => setSelectedCalendarGroup(group)}
-                    className={`px-6 py-3 rounded-2xl whitespace-nowrap transition-all ${selectedCalendarGroup === group ? 'bg-white text-black shadow' : 'text-zinc-400 hover:bg-zinc-800'}`}>
-                    {group}
-                  </button>
-                ))}
-              </div>
-            )}
+                {userAccessibleGroups.length > 0 && (
+                  <div className="flex bg-zinc-900 p-1 rounded-3xl w-fit mb-6 overflow-x-auto">
+                    {userAccessibleGroups.map(group => (
+                      <button
+                        key={group}
+                        onClick={() => setSelectedCalendarGroup(group)}
+                        className={`px-6 py-3 rounded-2xl whitespace-nowrap transition-all ${selectedCalendarGroup === group ? 'bg-white text-black shadow' : 'text-zinc-400 hover:bg-zinc-800'}`}>
+                        {group}
+                      </button>
+                    ))}
+                  </div>
+                )}
 
                 <div className="flex items-center justify-between mb-6">
                   <button onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} className="p-3 hover:bg-zinc-800 rounded-2xl">←</button>
                   <h2 className="text-2xl sm:text-3xl font-semibold capitalize">
-  {format(currentMonth, 'LLLL yyyy', { locale: de })} — {selectedCalendarGroup}
-</h2>
+                    {format(currentMonth, 'LLLL yyyy', { locale: de })} — {selectedCalendarGroup}
+                  </h2>
                   <button onClick={() => setCurrentMonth(addMonths(currentMonth, 1))} className="p-3 hover:bg-zinc-800 rounded-2xl">→</button>
                 </div>
 
@@ -398,87 +440,42 @@ export default function Dashboard() {
                     const isCurrentMonth = isSameMonth(day, currentMonth);
                     const isToday = dateStr === format(new Date(), 'yyyy-MM-dd');
                     const hasShiftToday = hasShift(dateStr);
-                      // ==================== СКАЧИВАНИЕ ====================
-  const downloadExcel = () => {
-    if (filteredShifts.length === 0) {
-      alert("Нет данных для экспорта");
-      return;
-    }
-
-    const data = filteredShifts.map(s => ({
-      Дата: format(new Date(s.date), 'dd.MM.yyyy'),
-      От: s.start_time?.slice(0,5),
-      До: s.end_time?.slice(0,5),
-      День: s.day_hours || 0,
-      Ночь: s.night_hours || 0,
-      Воскресенье: s.sunday_hours || 0,
-      Праздник: s.holiday_hours || 0,
-      Итого: s.total_hours || 0,
-      Группа: s.group === 'stefan' ? 'Stefan Kasjutin' : 'Ingo Kuby'
-    }));
-
-    const ws = XLSX.utils.json_to_sheet(data);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Смены");
-
-    const groupName = statsFilter === 'all' ? 'Alle' : statsFilter === 'ingo' ? 'Ingo' : 'Stefan';
-    XLSX.writeFile(wb, `Arbeitszeiten_${groupName}_${format(new Date(), 'yyyy-MM-dd')}.xlsx`);
-  };
-
-  const downloadPDF = () => {
-    alert("📄 PDF скачивается...\n\n(Сейчас простой вариант — в будущем сделаем красивый с jsPDF)");
-    
-    // Временный красивый вариант — открывает печать (можно сохранить как PDF)
-    const printWindow = window.open('', '_blank');
-    if (printWindow) {
-      printWindow.document.write(`
-        <h1>Arbeitszeiten — ${statsFilter === 'all' ? 'Alle' : statsFilter === 'ingo' ? 'Ingo Kuby' : 'Stefan Kasjutin'}</h1>
-        <p>Месяц: ${selectedStatMonth || 'Все месяцы'}</p>
-        <p>Скачано: ${new Date().toLocaleString('de-DE')}</p>
-        <hr>
-        <pre>${JSON.stringify(filteredShifts, null, 2)}</pre>
-      `);
-      printWindow.document.close();
-      printWindow.print();
-    }
-  };
 
                     return (
                       <button
-  key={index}
-  onClick={() => isCurrentMonth && handleDateClick(dateStr)}
-  disabled={!isCurrentMonth}
-  className={`aspect-square p-2 sm:p-3 rounded-2xl border flex flex-col items-center justify-center transition-all text-sm sm:text-base
-    ${isCurrentMonth ? 'border-zinc-700 hover:border-zinc-500 hover:bg-zinc-800 cursor-pointer' : 'opacity-30'}
-    ${isToday ? 'bg-zinc-800 border-white' : ''}
-    ${hasShiftToday ? 'bg-emerald-900/30 border-emerald-600' : ''}
-  `}
->
-  <span className={`font-medium ${isToday ? 'font-bold text-white' : ''} ${hasShiftToday ? 'text-emerald-400' : ''}`}>
-    {format(day, 'd')}
-  </span>
-  {hasShiftToday && <div className="w-2 h-2 bg-emerald-400 rounded-full mt-1"></div>}
-</button>
+                        key={index}
+                        onClick={() => isCurrentMonth && handleDateClick(dateStr)}
+                        disabled={!isCurrentMonth}
+                        className={`aspect-square p-2 sm:p-3 rounded-2xl border flex flex-col items-center justify-center transition-all text-sm sm:text-base
+                          ${isCurrentMonth ? 'border-zinc-700 hover:border-zinc-500 hover:bg-zinc-800 cursor-pointer' : 'opacity-30'}
+                          ${isToday ? 'bg-zinc-800 border-white' : ''}
+                          ${hasShiftToday ? 'bg-emerald-900/30 border-emerald-600' : ''}
+                        `}
+                      >
+                        <span className={`font-medium ${isToday ? 'font-bold text-white' : ''} ${hasShiftToday ? 'text-emerald-400' : ''}`}>
+                          {format(day, 'd')}
+                        </span>
+                        {hasShiftToday && <div className="w-2 h-2 bg-emerald-400 rounded-full mt-1"></div>}
+                      </button>
                     );
                   })}
                 </div>
               </div>
             )}
 
-            {/* ==================== СТАТИСТИКА (ПОЛНАЯ) ==================== */}
+            {/* ==================== СТАТИСТИКА ==================== */}
             {activeTab === 'stats' && (
               <div>
                 <h2 className="text-2xl font-bold mb-6">
-                  {t('common.calendar')} /
+                  {t('common.stats')}
                 </h2>
 
-                                  {/* Динамический переключатель для статистики */}
                 <div className="flex bg-zinc-900 p-1 rounded-3xl w-fit mb-6 overflow-x-auto">
                   <button onClick={() => setSelectedStatsGroup('all')} className={`px-6 py-3 rounded-2xl transition ${selectedStatsGroup === 'all' ? 'bg-white text-black shadow' : 'text-zinc-400 hover:bg-zinc-800'}`}>
                     Alle
                   </button>
                   {userAccessibleGroups.map(group => (
-                    <button 
+                    <button
                       key={group}
                       onClick={() => setSelectedStatsGroup(group)}
                       className={`px-6 py-3 rounded-2xl transition ${selectedStatsGroup === group ? 'bg-white text-black shadow' : 'text-zinc-400 hover:bg-zinc-800'}`}>
@@ -495,23 +492,24 @@ export default function Dashboard() {
                       const monthTotal = groupedByMonth[monthKey].reduce((sum: number, s: any) => sum + (s.total_hours || 0), 0);
                       return (
                         <button
-  key={monthKey}
-  onClick={() => setSelectedStatMonth(monthKey)}
-  className={`px-4 py-2.5 sm:px-6 sm:py-3 rounded-2xl whitespace-nowrap transition-all text-xs sm:text-sm font-medium border flex-shrink-0 active:scale-[0.985] ${
-    selectedStatMonth === monthKey ? 'bg-zinc-100 text-zinc-950 border-zinc-100' : 'border-zinc-700 hover:bg-zinc-800 text-zinc-400 active:bg-zinc-700'}`}>
-  {monthName}
-  <span className="ml-2 text-xs opacity-70">({monthTotal} h)</span>
-</button>
+                          key={monthKey}
+                          onClick={() => setSelectedStatMonth(monthKey)}
+                          className={`px-4 py-2.5 sm:px-6 sm:py-3 rounded-2xl whitespace-nowrap transition-all text-xs sm:text-sm font-medium border flex-shrink-0 active:scale-[0.985] ${
+                            selectedStatMonth === monthKey ? 'bg-zinc-100 text-zinc-950 border-zinc-100' : 'border-zinc-700 hover:bg-zinc-800 text-zinc-400 active:bg-zinc-700'}`}>
+                          {monthName}
+                          <span className="ml-2 text-xs opacity-70">({monthTotal} h)</span>
+                        </button>
                       );
                     })}
                   </div>
                 )}
-                                {/* ==================== ОБЩАЯ СУММА + КНОПКИ СКАЧИВАНИЯ ==================== */}
+
+                {/* Общая сумма + кнопки скачивания */}
                 {selectedStatMonth && (
                   <div className="bg-zinc-800 border border-zinc-700 rounded-2xl p-5 flex justify-between items-center mb-6">
                     <div>
                       <p className="text-zinc-400">
-                        {statsFilter === 'all' ? 'Alle' : statsFilter === 'ingo' ? 'Ingo Kuby' : 'Stefan Kasjutin'} • 
+                        {selectedStatsGroup === 'all' ? 'Alle' : selectedStatsGroup} •
                         {format(new Date(selectedStatMonth + '-01'), 'LLLL yyyy', { locale: de })}
                       </p>
                       <p className="text-4xl font-bold text-emerald-400">
@@ -519,14 +517,13 @@ export default function Dashboard() {
                       </p>
                     </div>
 
-                    {/* Кнопки Excel и PDF */}
                     <div className="flex gap-3">
-                      <button 
+                      <button
                         onClick={downloadExcel}
                         className="bg-emerald-600 hover:bg-emerald-500 px-6 py-3 rounded-2xl flex items-center gap-2 font-medium transition">
                         <Download size={18} /> {t('common.downloadExcel')}
                       </button>
-                      <button 
+                      <button
                         onClick={downloadPDF}
                         className="bg-rose-600 hover:bg-rose-500 px-6 py-3 rounded-2xl flex items-center gap-2 font-medium text-white transition">
                         📄 {t('common.downloadPDF')}
@@ -572,22 +569,19 @@ export default function Dashboard() {
                     </tbody>
                   </table>
                 </div>
-
-                  
               </div>
             )}
           </div>
         </div>
       </div>
 
-              {/* @ts-ignore — временно убираем ошибку типов */}
-            <ShiftModal 
-  isOpen={showModal} 
-  onClose={() => setShowModal(false)}
-  selectedDate={selectedDate}
-  group={selectedCalendarGroup}
-  onSave={handleSaveShift}     // ← важно добавить
-/>
+      <ShiftModal
+        isOpen={showModal}
+        onClose={() => setShowModal(false)}
+        selectedDate={selectedDate}
+        group={selectedCalendarGroup}
+        onSave={handleSaveShift}
+      />
     </div>
   );
 }

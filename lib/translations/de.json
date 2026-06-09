@@ -11,16 +11,29 @@
     "downloadPDF": "PDF herunterladen",
     "dashboard": "Dashboard",
     "deleteConfirm": "Möchten Sie diese Schicht wirklich löschen?",
-    "noData": "Keine Daten"
+    "noData": "Keine Daten",
+    "telegram": "Telegram verknüpfen",
+    "telegramWip": "Funktion in Entwicklung"
   },
   "login": {
     "title": "Arbeitszeiterfassung",
     "email": "Email",
     "password": "Passwort",
-    "login": "Anmelden"
+    "login": "Anmelden",
+    "loggingIn": "Anmelden..."
+  },
+  "errors": {
+    "saveFailed": "Fehler beim Speichern: ",
+    "deleteFailed": "Fehler beim Löschen",
+    "updateFailed": "Fehler beim Aktualisieren",
+    "notAuthorized": "Benutzer nicht authentifiziert",
+    "telegramLinkFailed": "Link konnte nicht erstellt werden",
+    "generic": "Ein Fehler ist aufgetreten. Bitte versuchen Sie es später erneut."
   },
   "setup": {
-    "usernameTitle": "Wählen Sie Ihren Namen",
+    "usernameTitle": "Schreiben Sie Ihren vollständigen Namen",
+    "newPassword": "Schreiben Sie Ihr neues Passwort",
+    "confirmPassword": "Bestätigen Sie Ihr neues Passwort",
     "usernameSubtitle": "Dieser Name wird dauerhaft verwendet",
     "languageTitle": "Wählen Sie die Sprache",
     "languageSubtitle": "Sie können die Sprache später in den Einstellungen ändern",
@@ -197,7 +210,47 @@
       "notesaved": "Notiz gespeichert",
       "deleteNote": "Diese Notiz löschen?",
       "chooseGroup": "Gruppe auswählen",
-      "writeNote": "Notiz schreiben"
+      "writeNote": "Notiz schreiben",
+      "deleteFailed": "Fehler beim Löschen der Schicht",
+      "saveFailed": "Fehler beim Speichern der Schicht"
       }
+  },
+  "bot": {
+    "welcomeback": "Willkommen zurück",
+    "linkSuccess": "Erfolgreich verknüpft",
+    "choose": "Wähle eine Aktion:",
+    "noshifts": "Du hast keine geplanten Schichten ohne Eintrag.",
+    "chooseshift": "Wähle eine Schicht zum Eintragen:",
+    "notfind": "Schicht nicht gefunden",
+    "thisshift": "Diese Schicht wurde bereits eingetragen.",
+    "error": "Fehler beim Speichern der Schicht. Bitte versuche es später erneut.",
+    "errorr": "Ein Fehler ist aufgetreten.",
+    "success": "Schicht erfolgreich eingetragen!",
+    "newTime": "Schreibe die neue Startzeit in das Format HH:MM",
+    "cancel": "Aktion abgebrochen.",
+    "newDate": "Schreibe die neue Datum in das Format **DD.MM.YYYY** (z.B.: 15.06.2026)\n\nOder schreibe *abbrechen*, um zum vorherigen Menü zurückzukehren.",
+    "noUser": "Benutzer konnte nicht ermittelt werden.",
+    "noSave": "Schicht konnte nicht gespeichert werden.",
+    "time": "Wann sollen die täglichen Benachrichtigungen gesendet werden?\nSchreibe die Zeit in das Format HH:MM",
+    "wrong": "Falsches Format. Schreibe die Zeit wie 11:00",
+    "okay": "Fertig! Benachrichtigungen werden ugesendet um",
+    "donthave": "Du hast noch keine eingetragenen Schichten für diesen Monat.",
+    "trylater": "Ein Fehler ist beim Laden der Schichten aufgetreten. Bitte versuche es später erneut.",
+    "false": "Falsches Format.",
+    "notfound": "Eintrag nicht gefunden.",
+    "successs": "Zeit erfolgreich geändert und Schicht eingetragen!",
+    "notification": "Benachrichtigung über Schicht",
+    "Group": "Gruppe:",
+    "Date": "Datum:",
+    "Time": "Zeit:",
+    "right": "Ist alles richtig?",
+
+    "writeshift": "Schicht eintragen",
+    "myshift": "Meine Schichten",
+    "settings": "Einstellungen",
+    "other": "Andere Datum",
+    "confirm": "Bestätigen",
+    "change_time": "Zeit ändern",
+    "cancell": "Abbrechen"
   }
 }

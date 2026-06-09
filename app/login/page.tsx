@@ -39,28 +39,16 @@ export default function Login() {
     e.preventDefault();
     setLoading(true);
 
-    console.log("🔄 Попытка входа:", email);
-
-    const { data, error } = await supabase.auth.signInWithPassword({
+    const { error } = await supabase.auth.signInWithPassword({
       email,
       password,
     });
 
-    console.log("📡 Ответ от Supabase:", { data, error });
-
     if (error) {
-      console.error("❌ Ошибка:", error.message);
       alert('Ошибка входа: ' + error.message);
       setLoading(false);
     } else {
-      console.log("✅ Успешный вход! Переходим на dashboard...");
       router.push('/dashboard');
-      router.refresh();
-
-      // Запасной вариант на случай проблем с Next Router
-      setTimeout(() => {
-        window.location.href = '/dashboard';
-      }, 400);
     }
   };
 
@@ -122,7 +110,7 @@ export default function Login() {
             disabled={loading}
             className="w-full py-6 bg-white text-black rounded-3xl font-semibold text-xl hover:bg-zinc-200 disabled:opacity-50 transition mt-4"
           >
-            {loading ? 'Вход...' : t('login.login')}
+            {loading ? t('login.loggingIn') : t('login.login')}
           </button>
         </form>
       </div>

@@ -1,4 +1,3 @@
-// app/schedule/ScheduleShiftModal.tsx
 'use client';
 
 import { useState, useEffect } from 'react';
@@ -13,7 +12,7 @@ interface Props {
   currentUserId: string | undefined;
   onShiftAdded: (newShift: any) => void;
   onShiftUpdated?: (updatedShift: any) => void;
-  onShiftDeleted?: (shiftId: number) => void;
+  onShiftDeleted?: (shiftId: string) => void; // теперь string (UUID)
 }
 
 export default function ScheduleShiftModal({
@@ -32,24 +31,23 @@ export default function ScheduleShiftModal({
   const [endTime, setEndTime] = useState('16:00');
   const [loading, setLoading] = useState(false);
   const [shiftsOnDate, setShiftsOnDate] = useState<any[]>([]);
-  const [editingShiftId, setEditingShiftId] = useState<number | null>(null);
+  const [editingShiftId, setEditingShiftId] = useState<string | null>(null);
 
   const { t } = useTranslation();
-    // Автоматическое время по умолчанию в зависимости от группы
+
+  // Автоматическое время по умолчанию
   useEffect(() => {
     if (!activeGroup) return;
-
     if (activeGroup.toLowerCase().includes("ingo") || activeGroup.toLowerCase().includes("kuby")) {
       setStartTime('10:00');
       setEndTime('00:00');
-    } 
-    else if (activeGroup.toLowerCase().includes("stefan") || activeGroup.toLowerCase().includes("kasjutin")) {
+    } else if (activeGroup.toLowerCase().includes("stefan") || activeGroup.toLowerCase().includes("kasjutin")) {
       setStartTime('07:00');
       setEndTime('20:00');
     }
   }, [activeGroup]);
 
-  // Загружаем пользователей текущей группы
+  // Загружаем пользователей группы
   useEffect(() => {
     if (!isOpen || !activeGroup) return;
 
@@ -67,7 +65,7 @@ export default function ScheduleShiftModal({
         .select('user_id')
         .eq('group_id', group.id);
 
-      if (!userGroupData || userGroupData.length === 0) return;
+      if (!userGroupData?.length) return;
 
       const userIds = userGroupData.map(item => item.user_id);
 
@@ -83,42 +81,50 @@ export default function ScheduleShiftModal({
     fetchGroupUsers();
   }, [isOpen, activeGroup]);
 
-  // Загружаем существующие смены
+  // === ГЛАВНОЕ ИЗМЕНЕНИЕ: загружаем смены из Supabase ===
   useEffect(() => {
-    if (!isOpen || !selectedDate) return;
+    if (!isOpen || !selectedDate || !activeGroup) return;
 
-    const key = `workPlanShifts_${activeGroup}`;
-    const saved = localStorage.getItem(key);
-    if (saved) {
-      const allShifts = JSON.parse(saved);
-      const filtered = allShifts
-        .filter((s: any) => s.date === selectedDate)
-        .sort((a: any, b: any) => (a.start_time || '').localeCompare(b.start_time || ''));
-      setShiftsOnDate(filtered);
-    }
+    const loadShifts = async () => {
+      const { data, error } = await supabase
+        .from('planned_shifts')
+        .select('*')
+        .eq('group_name', activeGroup)
+        .eq('date', selectedDate)
+        .order('start_time');
+
+      if (!error) {
+        setShiftsOnDate(data || []);
+      }
+    };
+
+    loadShifts();
   }, [isOpen, selectedDate, activeGroup]);
 
   const handleEditShift = (shift: any) => {
     setEditingShiftId(shift.id);
     setSelectedUserId(shift.user_id);
-    setStartTime(shift.start_time || shift.startTime || '08:00');
-    setEndTime(shift.end_time || shift.endTime || '16:00');
+    setStartTime(shift.start_time || '08:00');
+    setEndTime(shift.end_time || '16:00');
   };
 
-  const handleDeleteShift = (shiftId: number) => {
+  const handleDeleteShift = async (shiftId: string) => {
     if (!confirm(t('schedule.deleteConfirm'))) return;
 
-    const key = `workPlanShifts_${activeGroup}`;
-    const saved = localStorage.getItem(key);
-    if (saved) {
-      const allShifts = JSON.parse(saved).filter((s: any) => s.id !== shiftId);
-      localStorage.setItem(key, JSON.stringify(allShifts));
+    const { error } = await supabase
+      .from('planned_shifts')
+      .delete()
+      .eq('id', shiftId);
+
+    if (!error) {
       setShiftsOnDate(prev => prev.filter(s => s.id !== shiftId));
       if (onShiftDeleted) onShiftDeleted(shiftId);
+    } else {
+      alert(t('schedule.Alert.deleteFailed'));
     }
   };
 
-  const handleSave = () => {
+  const handleSave = async () => {
     if (!selectedUserId || !selectedDate) return;
 
     setLoading(true);
@@ -126,31 +132,41 @@ export default function ScheduleShiftModal({
     const selectedUser = users.find(u => u.id === selectedUserId);
     const username = selectedUser ? selectedUser.username : t('schedule.unknownUser');
 
-    const newShiftData = {
-      id: editingShiftId || Date.now(),
+    const shiftData = {
       user_id: selectedUserId,
-      username: username,
+      username,
+      group_name: activeGroup,
       date: selectedDate,
       start_time: startTime,
       end_time: endTime,
-      group: activeGroup,
     };
 
-    const key = `workPlanShifts_${activeGroup}`;
-    const saved = localStorage.getItem(key);
-    let allShifts = saved ? JSON.parse(saved) : [];
-
     if (editingShiftId) {
-      allShifts = allShifts.map((s: any) => s.id === editingShiftId ? newShiftData : s);
-      if (onShiftUpdated) onShiftUpdated(newShiftData);
+      const { error } = await supabase
+        .from('planned_shifts')
+        .update(shiftData)
+        .eq('id', editingShiftId);
+
+      if (!error && onShiftUpdated) {
+        onShiftUpdated({ id: editingShiftId, ...shiftData });
+      } else if (error) {
+        alert(t('schedule.Alert.saveFailed'));
+      }
     } else {
-      allShifts.push(newShiftData);
-      onShiftAdded(newShiftData);
+      const { data, error } = await supabase
+        .from('planned_shifts')
+        .insert(shiftData)
+        .select()
+        .single();
+
+      if (!error && data) {
+        onShiftAdded(data);
+      } else if (error) {
+        alert(t('schedule.Alert.saveFailed'));
+      }
     }
 
-    localStorage.setItem(key, JSON.stringify(allShifts));
     setLoading(false);
-
     setEditingShiftId(null);
     setSelectedUserId('');
     setStartTime('08:00');
@@ -186,8 +202,8 @@ export default function ScheduleShiftModal({
                   <span className="font-medium">{userName}</span>
                   <div className="flex items-center gap-4">
                     <span className="text-emerald-400 font-mono">
-                      {shift.start_time || shift.startTime} — {shift.end_time || shift.endTime}
-                    </span>
+  {(shift.start_time || shift.startTime || '').slice(0, 5)} — {(shift.end_time || shift.endTime || '').slice(0, 5)}
+</span>
                     <button
                       onClick={(e) => { e.stopPropagation(); handleDeleteShift(shift.id); }}
                       className="text-red-500 hover:text-red-600 text-sm font-medium"

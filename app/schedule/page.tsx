@@ -78,13 +78,38 @@ export default function Schedule() {
     load();
   }, []);
 
-  // Загрузка смен
-  useEffect(() => {
-    if (!activeGroup) return;
-    const key = `workPlanShifts_${activeGroup}`;
-    const saved = localStorage.getItem(key);
-    setPlannedShifts(saved ? JSON.parse(saved) : []);
-  }, [activeGroup]);
+  // Теперь из Supabase
+useEffect(() => {
+  if (!activeGroup) return;
+
+  const loadShiftsFromSupabase = async () => {
+    const { data, error } = await supabase
+      .from('planned_shifts')
+      .select('*')
+      .eq('group_name', activeGroup)
+      .order('date');
+
+    if (!error && data) {
+      setPlannedShifts(data);
+    }
+  };
+
+  loadShiftsFromSupabase();
+}, [activeGroup]);
+
+const handleShiftAdded = (newShift: any) => {
+  setPlannedShifts(prev => [...prev, newShift]);
+};
+
+const handleShiftUpdated = (updatedShift: any) => {
+  setPlannedShifts(prev =>
+    prev.map(s => (s.id === updatedShift.id ? updatedShift : s))
+  );
+};
+
+const handleShiftDeleted = (shiftId: string) => {
+  setPlannedShifts(prev => prev.filter(s => s.id !== shiftId));
+};
 
     // Загрузка заметок по месяцу
   useEffect(() => {
@@ -337,7 +362,9 @@ export default function Schedule() {
                 selectedDate={selectedDate}
                 activeGroup={activeGroup || ''}
                 currentUserId={user?.id}
-                onShiftAdded={addPlannedShift}
+                onShiftAdded={handleShiftAdded}
+  onShiftUpdated={handleShiftUpdated}
+  onShiftDeleted={handleShiftDeleted}
               />
             ) : (
               <ScheduleViewModal

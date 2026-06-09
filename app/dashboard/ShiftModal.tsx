@@ -3,18 +3,14 @@
 import { useState, useEffect } from 'react';
 import { format, isSunday } from 'date-fns';
 import { useTranslation } from '@/lib/i18n';
-
-const germanHolidays = [
-  '2025-01-01','2025-04-18','2025-04-21','2025-05-01','2025-05-29','2025-06-09','2025-10-03','2025-12-25','2025-12-26',
-  '2026-01-01','2026-04-03','2026-04-06','2026-05-01','2026-05-14','2026-05-25','2026-10-03','2026-12-25','2026-12-26',
-];
+import { germanHolidays } from '@/lib/constants';
 
 interface Props {
   isOpen: boolean;
   onClose: () => void;
   selectedDate: string;
   group: string;
-  onSave: (shiftData: any) => void;
+  onSave: (shiftData: any) => Promise<void>;
 }
 
 export default function ShiftModal({ isOpen, onClose, selectedDate, group, onSave }: Props) {
@@ -34,46 +30,72 @@ export default function ShiftModal({ isOpen, onClose, selectedDate, group, onSav
   if (!isOpen) return null;
 
   const calculateHours = () => {
-    if (!startTime || !endTime) return { day_hours: 0, night_hours: 0, total_hours: 0, sunday_hours: 0, holiday_hours: 0 };
+  if (!startTime || !endTime) {
+    return { day_hours: 0, night_hours: 0, total_hours: 0, sunday_hours: 0, holiday_hours: 0 };
+  }
 
-    const start = new Date(`2000-01-01 ${startTime}`);
-    const end = new Date(`2000-01-01 ${endTime}`);
-
-    let totalMinutes = (end.getTime() - start.getTime()) / (1000 * 60);
-    if (totalMinutes < 0) totalMinutes += 24 * 60;
-
-    const total_hours = Number((totalMinutes / 60).toFixed(2));
-
-    let day_hours = 0;
-    let night_hours = 0;
-    const startHour = parseInt(startTime.split(':')[0]);
-
-    for (let h = startHour; h < startHour + 24; h++) {
-      const hour = h % 24;
-      const minutesInHour = Math.min(60, totalMinutes);
-      if (totalMinutes <= 0) break;
-
-      if (hour >= 6 && hour < 22) {
-        day_hours += minutesInHour / 60;
-      } else {
-        night_hours += minutesInHour / 60;
-      }
-      totalMinutes -= minutesInHour;
-    }
-
+  // === Специальный случай: 00:00 → 00:00 = 24 часа ===
+  if (startTime === '00:00' && endTime === '00:00') {
     const isHolidayDay = germanHolidays.includes(selectedDate);
     const isSun = isSunday(new Date(selectedDate));
 
     return {
-      day_hours: Number(day_hours.toFixed(2)),
-      night_hours: Number(night_hours.toFixed(2)),
-      total_hours: Number(total_hours.toFixed(2)),
-      sunday_hours: isSun ? Number(total_hours.toFixed(2)) : 0,
-      holiday_hours: isHolidayDay ? Number(total_hours.toFixed(2)) : 0,
+      day_hours: 16,      // 6:00–22:00
+      night_hours: 6,     // 0:00–6:00 (22:00–24:00 не считается)
+      total_hours: 22,    // 24 - 2 часа (22:00-24:00)
+      sunday_hours: isSun ? 22 : 0,
+      holiday_hours: isHolidayDay ? 22 : 0,
     };
-  };
+  }
 
-  const handleSave = () => {
+  // === Обычный расчёт ===
+  const start = new Date(`2000-01-01T${startTime}`);
+  const end = new Date(`2000-01-01T${endTime}`);
+
+  let totalMinutes = (end.getTime() - start.getTime()) / (1000 * 60);
+  if (totalMinutes < 0) totalMinutes += 24 * 60;
+
+  let paidMinutes = 0;
+  let nightMinutes = 0;
+  let current = new Date(start);
+
+  for (let i = 0; i < totalMinutes; i += 60) {
+    const hour = current.getHours();
+    const minutesLeft = Math.min(60, totalMinutes - i);
+
+    // === ВАЖНО: с 22:00 до 24:00 часы НЕ считаются ===
+    if (hour >= 22) {
+      current.setMinutes(current.getMinutes() + 60);
+      continue;
+    }
+
+    paidMinutes += minutesLeft;
+
+    // Ночное время считаем только с 0:00 до 6:00 (22:00-24:00 уже исключили)
+    if (hour >= 0 && hour < 6) {
+      nightMinutes += minutesLeft;
+    }
+
+    current.setMinutes(current.getMinutes() + 60);
+  }
+
+  const total_hours = Number((paidMinutes / 60).toFixed(2));
+  const night_hours = Number((nightMinutes / 60).toFixed(2));
+  const day_hours = Number((total_hours - night_hours).toFixed(2));
+
+  const isHolidayDay = germanHolidays.includes(selectedDate);
+  const isSun = isSunday(new Date(selectedDate));
+
+  return {
+    day_hours: Math.max(0, day_hours),
+    night_hours: Math.max(0, night_hours),
+    total_hours,
+    sunday_hours: isSun ? total_hours : 0,
+    holiday_hours: isHolidayDay ? total_hours : 0,
+  };
+};
+
+  const handleSave = async () => {
     const hours = calculateHours();
 
     const shiftData = {
@@ -88,7 +110,9 @@ export default function ShiftModal({ isOpen, onClose, selectedDate, group, onSav
       group: group,
     };
 
-    onSave(shiftData);
+    setLoading(true);
+    await onSave(shiftData);
+    setLoading(false);
     onClose();
   };
 

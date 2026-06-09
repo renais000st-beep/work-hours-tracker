@@ -96,8 +96,6 @@ export default function AdminPanel() {
       setAllGroups(groupsData || []);
       setShifts(shiftsData || []);
 
-      console.log("✅ Загружено пользователей:", usersWithRoles.length);
-
     } catch (err) {
       console.error("Ошибка loadAdminData:", err);
     } finally {
