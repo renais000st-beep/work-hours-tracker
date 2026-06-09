@@ -3,7 +3,7 @@
 import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslation } from '@/lib/i18n';
-import { LogOut, ArrowLeft, Calendar as CalendarIcon, Menu, Shield, Trash2 } from 'lucide-react';
+import { LogOut, ArrowLeft, Calendar as CalendarIcon, Menu, Shield, Trash2, BarChart2, NotebookText } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { 
   format, addMonths, subMonths, startOfMonth, endOfMonth, 
@@ -199,7 +199,7 @@ const handleShiftDeleted = (shiftId: string) => {
   return (
     <div className="min-h-screen bg-zinc-950 text-white">
       {/* MOBILE TOP BAR */}
-      <div className="lg:hidden bg-zinc-900 border-b border-zinc-800 px-4 py-3 flex items-center justify-between sticky top-0 z-50">
+      <div className="lg:hidden bg-zinc-900/90 backdrop-blur-sm border-b border-zinc-800 px-4 py-3 flex items-center justify-between sticky top-0 z-50">
         <button onClick={() => router.push('/dashboard')} className="flex items-center gap-2 text-zinc-400">
           <ArrowLeft size={24} />
         </button>
@@ -216,11 +216,11 @@ const handleShiftDeleted = (shiftId: string) => {
             <h1 className="text-2xl font-bold">{t('common.title')}</h1>
           </div>
           <nav className="flex flex-col gap-2 flex-1">
-            <a href="/dashboard" className="flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-zinc-800">
-              📊 {t('schedule.dashboard')}
+            <a href="/dashboard" className="flex items-center gap-3 px-4 py-3 rounded-xl hover:bg-zinc-800 transition-colors">
+              <BarChart2 size={20} /> {t('schedule.dashboard')}
             </a>
-            <a href="/schedule" className="flex items-center gap-3 px-4 py-3 rounded-2xl bg-zinc-800 text-white">
-              📅 {t('schedule.title')}
+            <a href="/schedule" className="flex items-center gap-3 px-4 py-3 rounded-xl bg-zinc-800 text-white">
+              <CalendarIcon size={20} /> {t('schedule.title')}
             </a>
           </nav>
 
@@ -241,12 +241,12 @@ const handleShiftDeleted = (shiftId: string) => {
         <div className="flex-1 lg:ml-64">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 lg:py-8">
             {/* Переключатель групп */}
-            <div className="flex gap-2 bg-zinc-900 p-1 rounded-3xl w-fit mb-8 overflow-x-auto pb-2">
+            <div className="flex gap-2 bg-zinc-900 p-1 rounded-2xl w-fit mb-8 overflow-x-auto pb-2">
               {userGroups.map((group) => (
                 <button
                   key={group.id}
                   onClick={() => setActiveGroup(group.name)}
-                  className={`px-6 py-3 rounded-3xl font-medium transition whitespace-nowrap ${
+                  className={`px-6 py-3 rounded-xl font-medium transition-colors whitespace-nowrap ${
                     activeGroup === group.name ? 'bg-white text-black shadow' : 'hover:bg-zinc-800 text-zinc-400'
                   }`}
                 >
@@ -256,7 +256,7 @@ const handleShiftDeleted = (shiftId: string) => {
             </div>
 
             {/* Календарь */}
-            <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-4 sm:p-6">
+            <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 sm:p-6">
               <div className="flex items-center justify-between mb-6">
                 <button onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} className="p-3 hover:bg-zinc-800 rounded-2xl text-2xl">←</button>
                 <h2 className="text-2xl sm:text-3xl font-semibold capitalize text-center">
@@ -280,7 +280,7 @@ const handleShiftDeleted = (shiftId: string) => {
                       key={index}
                       onClick={() => isCurrentMonth && handleDateClick(dateStr)}
                       disabled={!isCurrentMonth}
-                      className={`aspect-square p-2 sm:p-3 rounded-2xl border flex flex-col items-center justify-center transition-all
+                      className={`aspect-square min-h-[44px] sm:min-h-0 p-2 sm:p-3 rounded-xl border flex flex-col items-center justify-center transition-colors
                         ${isCurrentMonth ? 'border-zinc-700 hover:border-zinc-500 hover:bg-zinc-800 cursor-pointer' : 'opacity-30'}
                         ${isMyShift ? 'bg-emerald-900/60 border-emerald-500' : ''}
                       `}
@@ -296,8 +296,8 @@ const handleShiftDeleted = (shiftId: string) => {
             </div>
 
                          {/* ==================== Заметки ==================== */}
-            <div className="mt-6 bg-zinc-900 border border-zinc-700 rounded-3xl p-5">
-              <h3 className="text-lg font-semibold mb-4">📝 {t('schedule.Note.Notes')}</h3>
+            <div className="mt-6 bg-zinc-900 border border-zinc-800 rounded-2xl p-5">
+              <h3 className="text-lg font-semibold mb-4 flex items-center gap-2"><NotebookText size={20} /> {t('schedule.Note.Notes')}</h3>
 
               <textarea 
                 className="w-full h-20 bg-zinc-800 border border-zinc-600 rounded-2xl p-3 text-sm resize-y"
@@ -363,8 +363,8 @@ const handleShiftDeleted = (shiftId: string) => {
                 activeGroup={activeGroup || ''}
                 currentUserId={user?.id}
                 onShiftAdded={handleShiftAdded}
-  onShiftUpdated={handleShiftUpdated}
-  onShiftDeleted={handleShiftDeleted}
+                onShiftUpdated={handleShiftUpdated}
+                onShiftDeleted={handleShiftDeleted}
               />
             ) : (
               <ScheduleViewModal

@@ -5,7 +5,7 @@ import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
-import { ArrowLeft, Download, Trash2, Users, Calendar, UserPlus} from 'lucide-react';
+import { ArrowLeft, Download, Trash2, Users, UserPlus, FileDown, X, Pencil, Settings } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { useTranslation } from '@/lib/i18n';
 
@@ -399,12 +399,12 @@ export default function AdminPanel() {
   return (
     <div className="min-h-screen bg-zinc-950 text-white">
       {/* Header */}
-      <div className="border-b border-zinc-700 bg-zinc-900 sticky top-0 z-50">
+      <div className="border-b border-zinc-800 bg-zinc-900/90 backdrop-blur-sm sticky top-0 z-50">
         <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-          <button onClick={() => router.push('/dashboard')} className="flex items-center gap-2 text-zinc-400 hover:text-white">
-            ← {t('admin.backtoDashboard')}
+          <button onClick={() => router.push('/dashboard')} className="flex items-center gap-2 text-zinc-400 hover:text-white transition-colors">
+            <ArrowLeft size={20} /> {t('admin.backtoDashboard')}
           </button>
-          <h1 className="text-3xl font-bold">🔧 {t('admin.title')}</h1>
+          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2"><Settings size={22} /> {t('admin.title')}</h1>
           <button onClick={() => supabase.auth.signOut().then(() => router.push('/login'))} className="text-zinc-400 hover:text-white">
             {t('admin.logout')}
           </button>
@@ -463,14 +463,14 @@ export default function AdminPanel() {
             <Download size={20} /> {t('admin.downloadExcel')}
           </button>
 
-          <button onClick={downloadPDF} className="bg-rose-600 hover:bg-rose-500 px-5 py-2 rounded-xl flex items-center gap-2 text-white">
-            📄 {t('admin.downloadPDF')}
+          <button onClick={downloadPDF} className="bg-rose-600 hover:bg-rose-500 px-5 py-2 rounded-xl flex items-center gap-2 text-white transition-colors">
+            <FileDown size={18} /> {t('admin.downloadPDF')}
           </button>
 
-           <button 
+          <button
             onClick={() => setShowEditUsersModal(true)}
-            className="bg-zinc-700 hover:bg-zinc-600 px-5 py-2 rounded-xl flex items-center gap-2 text-white">
-            ✏️ {t('admin.editUsers')}
+            className="bg-zinc-700 hover:bg-zinc-600 px-5 py-2 rounded-xl flex items-center gap-2 text-white transition-colors">
+            <Pencil size={16} /> {t('admin.editUsers')}
           </button>
 
           <button 
@@ -490,7 +490,7 @@ export default function AdminPanel() {
       <div className="max-w-7xl mx-auto px-6 py-6">
         <h2 className="text-xl mb-4">{t('admin.shifts')} • {filteredShifts.length} {t('admin.records')}</h2>
 
-        <div className="bg-zinc-900 border border-zinc-700 rounded-3xl overflow-hidden">
+        <div className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden">
           <table className="w-full">
             <thead>
               <tr className="bg-zinc-800">
@@ -513,10 +513,10 @@ export default function AdminPanel() {
                             <td className="p-4">{shift.start_time?.slice(0,5) || '-'} — {shift.end_time?.slice(0,5) || '-'}</td>
                             <td className="p-4 text-right font-bold text-emerald-400">{shift.total_hours || 0} ч</td>
                             <td className="p-4 text-center">
-  <button 
+  <button
     onClick={() => handleDeleteShift(shift.id)}
-    className="text-red-500 hover:text-red-600 font-medium">
-    {t('admin.delete')}
+    className="text-zinc-500 hover:text-red-400 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center mx-auto">
+    <Trash2 size={15} />
   </button>
 </td>
                           </tr>
@@ -528,11 +528,11 @@ export default function AdminPanel() {
 
             {/* ==================== МОДАЛ НОВОГО ПОЛЬЗОВАТЕЛЯ ==================== */}
       {showAddUserModal && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
-          <div className="bg-zinc-900 border border-zinc-700 rounded-3xl w-full max-w-md">
-            <div className="p-6 border-b flex justify-between">
-              <h2 className="text-xl font-bold">➕ {t('admin.newUserModal.title')}</h2>
-              <button onClick={() => setShowAddUserModal(false)} className="text-3xl">✕</button>
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 sm:p-4">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md shadow-2xl animate-slide-up sm:animate-none">
+            <div className="p-6 border-b border-zinc-800 flex justify-between items-center">
+              <h2 className="text-lg font-semibold tracking-tight">{t('admin.newUserModal.title')}</h2>
+              <button onClick={() => setShowAddUserModal(false)} className="text-zinc-400 hover:text-white transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"><X size={20} /></button>
             </div>
 
             <div className="p-6 space-y-5">
@@ -575,11 +575,11 @@ export default function AdminPanel() {
                 {allGroups.length === 0 && <p className="text-amber-400 text-sm">{t('admin.firstcreategroup')}</p>}
               </div>
 
-              <button 
+              <button
                 onClick={createNewUser}
                 disabled={creating}
-                className="w-full bg-emerald-600 hover:bg-emerald-500 py-3 rounded-xl font-medium">
-                {creating ? t('admin.loading') : "✅ " + t('admin.createNewUser')}
+                className="w-full bg-emerald-600 hover:bg-emerald-500 py-3 rounded-xl font-medium transition-colors">
+                {creating ? t('admin.loading') : t('admin.createNewUser')}
               </button>
             </div>
           </div>
@@ -587,9 +587,9 @@ export default function AdminPanel() {
       )}
             {/* ==================== МОДАЛ СОЗДАНИЯ НОВОЙ ГРУППЫ ==================== */}
       {showNewGroupModal && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50">
-          <div className="bg-zinc-900 border border-zinc-700 rounded-3xl w-full max-w-md p-6">
-            <h2 className="text-xl font-bold mb-4">{t('admin.newGroupModal.addNewGroup')}</h2>
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-end sm:items-center justify-center z-50 sm:p-4">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md p-6 shadow-2xl animate-slide-up sm:animate-none">
+            <h2 className="text-lg font-semibold tracking-tight mb-4">{t('admin.newGroupModal.addNewGroup')}</h2>
             
             <input 
               type="text" 
@@ -600,11 +600,11 @@ export default function AdminPanel() {
             />
 
             <div className="flex gap-3">
-              <button 
+              <button
                 onClick={createNewGroup}
                 disabled={creatingGroup}
-                className="flex-1 bg-emerald-600 hover:bg-emerald-500 py-3 rounded-xl font-medium">
-                {creatingGroup ? t('admin.newGroupModal.loading') : "✅ " + t('admin.newGroupModal.addNewGroup')}
+                className="flex-1 bg-emerald-600 hover:bg-emerald-500 py-3 rounded-xl font-medium transition-colors">
+                {creatingGroup ? t('admin.newGroupModal.loading') : t('admin.newGroupModal.addNewGroup')}
               </button>
               <button 
                 onClick={() => {setShowNewGroupModal(false); setNewGroupName('');}}
@@ -620,13 +620,13 @@ export default function AdminPanel() {
       )}
               {/* ==================== МОДАЛ РЕДАКТИРОВАНИЯ ПОЛЬЗОВАТЕЛЕЙ ==================== */}
       {showEditUsersModal && (
-        <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-[100] p-4">
-          <div className="bg-zinc-900 border border-zinc-700 rounded-3xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col">
-            <div className="p-6 border-b flex justify-between items-center">
-              <h2 className="text-2xl font-bold">✏️ {t('admin.Modal.editUsers')}</h2>
-              <button 
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-[100] p-4">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-5xl max-h-[90vh] overflow-hidden flex flex-col shadow-2xl">
+            <div className="p-6 border-b border-zinc-800 flex justify-between items-center">
+              <h2 className="text-lg font-semibold tracking-tight flex items-center gap-2"><Pencil size={18} /> {t('admin.Modal.editUsers')}</h2>
+              <button
                 onClick={() => setShowEditUsersModal(false)}
-                className="text-3xl leading-none hover:text-zinc-400">✕</button>
+                className="text-zinc-400 hover:text-white transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"><X size={20} /></button>
             </div>
 
             <div className="p-6 overflow-auto flex-1">
@@ -669,9 +669,9 @@ export default function AdminPanel() {
                                 {groupName}
                                 <button
                                   onClick={() => updateUserGroups(user.id, groupName, 'remove')}
-                                  className="text-red-400 hover:text-red-500 text-xs font-bold"
+                                  className="text-zinc-500 hover:text-red-400 transition-colors"
                                 >
-                                  ✕
+                                  <X size={12} />
                                 </button>
                               </div>
                             ))}
@@ -700,10 +700,10 @@ export default function AdminPanel() {
 
                         {/* Действия */}
                         <td className="p-4 text-center">
-                          <button 
+                          <button
                             onClick={() => deleteUser(user.id)}
-                            className="text-red-500 hover:text-red-600 px-4 py-1 font-medium">
-                            {t('admin.delete')}
+                            className="text-zinc-500 hover:text-red-400 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center mx-auto">
+                            <Trash2 size={15} />
                           </button>
                         </td>
                       </tr>

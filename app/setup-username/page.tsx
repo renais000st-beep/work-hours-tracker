@@ -102,23 +102,22 @@ export default function SetupUsername() {
 
   return (
     <div className="min-h-screen bg-zinc-950 flex items-center justify-center p-4 sm:p-6">
-      <div className="bg-zinc-900 w-full max-w-md mx-auto rounded-3xl border border-zinc-700 p-8 sm:p-10">
-        <h1 className="text-3xl font-bold text-center mb-4 text-white">
+      <div className="bg-zinc-900 w-full max-w-md mx-auto rounded-2xl border border-zinc-800 p-8 sm:p-10">
+        <h1 className="text-3xl font-bold text-center mb-4 text-white tracking-tight">
           {t('setup.usernameTitle')}
         </h1>
-        <p className="text-zinc-400 text-center mb-10 text-lg">
+        <p className="text-zinc-500 text-center mb-10 text-lg">
           {t('setup.usernameSubtitle')}
         </p>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Username */}
           <div>
             <input
               type="text"
               placeholder="username"
               value={username}
               onChange={(e) => setUsername(e.target.value)}
-              className="w-full bg-zinc-800 border border-zinc-700 rounded-3xl px-6 py-6 text-xl text-white placeholder-zinc-500 focus:outline-none focus:border-white transition"
+              className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-4 text-xl text-white placeholder-zinc-500 focus:outline-none focus:ring-1 focus:ring-white/20 focus:border-zinc-500 transition-colors"
               required
               autoFocus
             />
@@ -155,7 +154,7 @@ export default function SetupUsername() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full py-6 bg-white text-black rounded-3xl font-semibold text-xl hover:bg-zinc-200 disabled:opacity-50 transition mt-4"
+            className="w-full py-4 bg-white text-black rounded-xl font-semibold text-xl hover:bg-zinc-200 disabled:opacity-50 transition-colors"
           >
             {loading ? t('setup.loading') : t('common.save')}
           </button>

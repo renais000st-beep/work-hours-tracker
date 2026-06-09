@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useTranslation } from '@/lib/i18n';
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, startOfWeek, isSameMonth } from 'date-fns';
 import { de } from 'date-fns/locale';
-import { LogOut, Link, LayoutDashboard, Calendar as CalendarIcon, BarChart3, Trash2, Download, Shield, Menu } from 'lucide-react';
+import { LogOut, Link, LayoutDashboard, Calendar as CalendarIcon, BarChart3, Trash2, Download, Shield, Menu, FileDown } from 'lucide-react';
 import ShiftModal from './ShiftModal';
 import * as XLSX from 'xlsx';
 
@@ -286,7 +286,7 @@ export default function Dashboard() {
   return (
     <div className="min-h-screen bg-zinc-950 text-white">
       {/* MOBILE TOP BAR */}
-      <div className="lg:hidden bg-zinc-900 border-b border-zinc-800 px-4 py-3 flex items-center justify-between sticky top-0 z-50">
+      <div className="lg:hidden bg-zinc-900/90 backdrop-blur-sm border-b border-zinc-800 px-4 py-3 flex items-center justify-between sticky top-0 z-50">
         <button onClick={() => setMobileMenuOpen(!mobileMenuOpen)} className="p-2">
           <Menu size={28} />
         </button>
@@ -297,7 +297,7 @@ export default function Dashboard() {
       {/* ==================== МОБИЛЬНОЕ МЕНЮ ==================== */}
 {mobileMenuOpen && (
   <div
-    className="lg:hidden fixed inset-0 bg-black/80 z-[100]"
+    className="lg:hidden fixed inset-0 bg-black/80 backdrop-blur-sm z-[100]"
     onClick={() => setMobileMenuOpen(false)}
   >
     <div
@@ -397,25 +397,25 @@ export default function Dashboard() {
         <div className="flex-1 lg:ml-64">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 lg:py-8">
             {/* Табы */}
-            <div className="flex bg-zinc-900 p-1 rounded-3xl w-fit mb-8">
-              <button onClick={() => setActiveTab('calendar')} className={`px-6 py-3 rounded-2xl flex items-center gap-2 transition ${activeTab === 'calendar' ? 'bg-white text-black shadow' : 'hover:bg-zinc-800 text-zinc-400'}`}>
+            <div className="flex bg-zinc-900 p-1 rounded-2xl w-fit mb-8">
+              <button onClick={() => setActiveTab('calendar')} className={`px-6 py-3 rounded-xl flex items-center gap-2 transition-colors ${activeTab === 'calendar' ? 'bg-white text-black shadow' : 'hover:bg-zinc-800 text-zinc-400'}`}>
                 <CalendarIcon size={20} /> {t('common.calendar')}
               </button>
-              <button onClick={() => setActiveTab('stats')} className={`px-6 py-3 rounded-2xl flex items-center gap-2 transition ${activeTab === 'stats' ? 'bg-white text-black shadow' : 'hover:bg-zinc-800 text-zinc-400'}`}>
+              <button onClick={() => setActiveTab('stats')} className={`px-6 py-3 rounded-xl flex items-center gap-2 transition-colors ${activeTab === 'stats' ? 'bg-white text-black shadow' : 'hover:bg-zinc-800 text-zinc-400'}`}>
                 <BarChart3 size={20} /> {t('common.stats')}
               </button>
             </div>
 
             {/* ==================== КАЛЕНДАРЬ ==================== */}
             {activeTab === 'calendar' && (
-              <div className="bg-zinc-900 border border-zinc-800 rounded-3xl p-4 sm:p-6">
+              <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 sm:p-6">
                 {userAccessibleGroups.length > 0 && (
-                  <div className="flex bg-zinc-900 p-1 rounded-3xl w-fit mb-6 overflow-x-auto">
+                  <div className="flex bg-zinc-900 p-1 rounded-2xl w-fit mb-6 overflow-x-auto">
                     {userAccessibleGroups.map(group => (
                       <button
                         key={group}
                         onClick={() => setSelectedCalendarGroup(group)}
-                        className={`px-6 py-3 rounded-2xl whitespace-nowrap transition-all ${selectedCalendarGroup === group ? 'bg-white text-black shadow' : 'text-zinc-400 hover:bg-zinc-800'}`}>
+                        className={`px-6 py-3 rounded-xl whitespace-nowrap transition-colors ${selectedCalendarGroup === group ? 'bg-white text-black shadow' : 'text-zinc-400 hover:bg-zinc-800'}`}>
                         {group}
                       </button>
                     ))}
@@ -446,7 +446,7 @@ export default function Dashboard() {
                         key={index}
                         onClick={() => isCurrentMonth && handleDateClick(dateStr)}
                         disabled={!isCurrentMonth}
-                        className={`aspect-square p-2 sm:p-3 rounded-2xl border flex flex-col items-center justify-center transition-all text-sm sm:text-base
+                        className={`aspect-square min-h-[44px] sm:min-h-0 p-2 sm:p-3 rounded-xl border flex flex-col items-center justify-center transition-colors text-sm sm:text-base
                           ${isCurrentMonth ? 'border-zinc-700 hover:border-zinc-500 hover:bg-zinc-800 cursor-pointer' : 'opacity-30'}
                           ${isToday ? 'bg-zinc-800 border-white' : ''}
                           ${hasShiftToday ? 'bg-emerald-900/30 border-emerald-600' : ''}
@@ -470,15 +470,15 @@ export default function Dashboard() {
                   {t('common.stats')}
                 </h2>
 
-                <div className="flex bg-zinc-900 p-1 rounded-3xl w-fit mb-6 overflow-x-auto">
-                  <button onClick={() => setSelectedStatsGroup('all')} className={`px-6 py-3 rounded-2xl transition ${selectedStatsGroup === 'all' ? 'bg-white text-black shadow' : 'text-zinc-400 hover:bg-zinc-800'}`}>
+                <div className="flex bg-zinc-900 p-1 rounded-2xl w-fit mb-6 overflow-x-auto">
+                  <button onClick={() => setSelectedStatsGroup('all')} className={`px-6 py-3 rounded-xl transition-colors ${selectedStatsGroup === 'all' ? 'bg-white text-black shadow' : 'text-zinc-400 hover:bg-zinc-800'}`}>
                     Alle
                   </button>
                   {userAccessibleGroups.map(group => (
                     <button
                       key={group}
                       onClick={() => setSelectedStatsGroup(group)}
-                      className={`px-6 py-3 rounded-2xl transition ${selectedStatsGroup === group ? 'bg-white text-black shadow' : 'text-zinc-400 hover:bg-zinc-800'}`}>
+                      className={`px-6 py-3 rounded-xl transition-colors ${selectedStatsGroup === group ? 'bg-white text-black shadow' : 'text-zinc-400 hover:bg-zinc-800'}`}>
                       {group}
                     </button>
                   ))}
@@ -520,20 +520,20 @@ export default function Dashboard() {
                     <div className="flex gap-3">
                       <button
                         onClick={downloadExcel}
-                        className="bg-emerald-600 hover:bg-emerald-500 px-6 py-3 rounded-2xl flex items-center gap-2 font-medium transition">
+                        className="bg-emerald-600 hover:bg-emerald-500 px-6 py-3 rounded-xl flex items-center gap-2 font-medium transition-colors">
                         <Download size={18} /> {t('common.downloadExcel')}
                       </button>
                       <button
                         onClick={downloadPDF}
-                        className="bg-rose-600 hover:bg-rose-500 px-6 py-3 rounded-2xl flex items-center gap-2 font-medium text-white transition">
-                        📄 {t('common.downloadPDF')}
+                        className="bg-rose-600 hover:bg-rose-500 px-6 py-3 rounded-xl flex items-center gap-2 font-medium text-white transition-colors">
+                        <FileDown size={18} /> {t('common.downloadPDF')}
                       </button>
                     </div>
                   </div>
                 )}
 
                 {/* Таблица */}
-                <div className="bg-zinc-900 border border-zinc-800 rounded-3xl overflow-x-auto">
+                <div className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-x-auto">
                   <table className="w-full min-w-[800px]">
                     <thead>
                       <tr className="bg-zinc-800">
@@ -562,7 +562,7 @@ export default function Dashboard() {
                             <td className="p-4 text-right text-orange-400">{shift.holiday_hours || 0}</td>
                             <td className="p-4 text-right font-bold">{shift.total_hours || 0}</td>
                             <td className="p-4 text-center">
-                              <button onClick={() => handleDeleteShift(shift.id)} className="text-red-500 hover:text-red-600">🗑</button>
+                              <button onClick={() => handleDeleteShift(shift.id)} className="text-zinc-500 hover:text-red-400 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"><Trash2 size={15} /></button>
                             </td>
                           </tr>
                         ))}
