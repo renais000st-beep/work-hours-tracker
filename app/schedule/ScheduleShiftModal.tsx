@@ -4,6 +4,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useTranslation } from '@/lib/i18n';
+import { Trash2 } from 'lucide-react';
 
 interface Props {
   isOpen: boolean;
@@ -21,7 +22,6 @@ export default function ScheduleShiftModal({
   onClose,
   selectedDate,
   activeGroup,
-  currentUserId,
   onShiftAdded,
   onShiftUpdated,
   onShiftDeleted,
@@ -35,21 +35,19 @@ export default function ScheduleShiftModal({
   const [editingShiftId, setEditingShiftId] = useState<number | null>(null);
 
   const { t } = useTranslation();
-    // Автоматическое время по умолчанию в зависимости от группы
+
   useEffect(() => {
     if (!activeGroup) return;
 
     if (activeGroup.toLowerCase().includes("ingo") || activeGroup.toLowerCase().includes("kuby")) {
       setStartTime('10:00');
       setEndTime('00:00');
-    } 
-    else if (activeGroup.toLowerCase().includes("stefan") || activeGroup.toLowerCase().includes("kasjutin")) {
+    } else if (activeGroup.toLowerCase().includes("stefan") || activeGroup.toLowerCase().includes("kasjutin")) {
       setStartTime('07:00');
       setEndTime('20:00');
     }
   }, [activeGroup]);
 
-  // Загружаем пользователей текущей группы
   useEffect(() => {
     if (!isOpen || !activeGroup) return;
 
@@ -83,7 +81,6 @@ export default function ScheduleShiftModal({
     fetchGroupUsers();
   }, [isOpen, activeGroup]);
 
-  // Загружаем существующие смены
   useEffect(() => {
     if (!isOpen || !selectedDate) return;
 
@@ -160,19 +157,24 @@ export default function ScheduleShiftModal({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
-      <div className="bg-zinc-900 rounded-3xl w-full max-w-lg mx-auto overflow-hidden max-h-[95vh] flex flex-col">
-        
+    <div
+      className="fixed inset-0 bg-black/70 flex items-end sm:items-center justify-center z-50 sm:p-4"
+      onClick={onClose}
+    >
+      <div
+        className="bg-zinc-900 rounded-t-2xl sm:rounded-2xl w-full sm:max-w-lg shadow-2xl overflow-hidden max-h-[95vh] flex flex-col animate-slide-up sm:animate-none"
+        onClick={(e) => e.stopPropagation()}
+      >
         {/* Заголовок */}
-        <div className="px-6 py-5 border-b border-zinc-700 text-center bg-zinc-950">
-          <h2 className="text-2xl font-semibold">{t('schedule.selectUser')}</h2>
-          <p className="text-zinc-400 text-sm mt-1">{selectedDate}</p>
+        <div className="px-6 py-5 border-b border-zinc-800 text-center bg-zinc-950 flex-shrink-0">
+          <h2 className="text-lg font-semibold tracking-tight">{t('schedule.selectUser')}</h2>
+          <p className="text-zinc-500 text-sm mt-0.5">{selectedDate}</p>
         </div>
 
         {/* Существующие смены */}
         {shiftsOnDate.length > 0 && (
-          <div className="px-6 py-4 border-b border-zinc-700 max-h-60 overflow-y-auto">
-            <p className="text-xs text-zinc-400 mb-3">{t('schedule.alreadyPlanned')}</p>
+          <div className="px-6 py-4 border-b border-zinc-800 max-h-52 overflow-y-auto flex-shrink-0">
+            <p className="text-xs text-zinc-500 mb-3">{t('schedule.alreadyPlanned')}</p>
             {shiftsOnDate.map((shift) => {
               const userName = shift.username || t('schedule.unknown');
               const isEditing = shift.id === editingShiftId;
@@ -181,18 +183,18 @@ export default function ScheduleShiftModal({
                 <div
                   key={shift.id}
                   onClick={() => handleEditShift(shift)}
-                  className={`flex justify-between items-center bg-zinc-800 rounded-2xl px-4 py-4 mb-3 text-base cursor-pointer hover:bg-zinc-700 transition ${isEditing ? 'ring-2 ring-emerald-500' : ''}`}
+                  className={`flex justify-between items-center bg-zinc-800 rounded-xl px-4 py-3 mb-2 text-sm cursor-pointer hover:bg-zinc-700 transition-colors ${isEditing ? 'ring-1 ring-emerald-500' : ''}`}
                 >
                   <span className="font-medium">{userName}</span>
-                  <div className="flex items-center gap-4">
-                    <span className="text-emerald-400 font-mono">
+                  <div className="flex items-center gap-3">
+                    <span className="text-emerald-400 font-mono text-sm">
                       {shift.start_time || shift.startTime} — {shift.end_time || shift.endTime}
                     </span>
                     <button
                       onClick={(e) => { e.stopPropagation(); handleDeleteShift(shift.id); }}
-                      className="text-red-500 hover:text-red-600 text-sm font-medium"
+                      className="text-zinc-500 hover:text-red-400 transition-colors p-1"
                     >
-                      {t('schedule.delete')}
+                      <Trash2 size={14} />
                     </button>
                   </div>
                 </div>
@@ -202,13 +204,13 @@ export default function ScheduleShiftModal({
         )}
 
         {/* Форма */}
-        <div className="p-6 space-y-8 flex-1 overflow-auto">
+        <div className="p-6 space-y-5 flex-1 overflow-auto">
           <div>
-            <label className="block text-sm text-zinc-400 mb-2">{t('schedule.selectUser')}</label>
+            <label className="block text-sm text-zinc-500 mb-2">{t('schedule.selectUser')}</label>
             <select
               value={selectedUserId}
               onChange={(e) => setSelectedUserId(e.target.value)}
-              className="w-full bg-zinc-800 border border-zinc-700 rounded-3xl px-5 py-5 text-white text-lg"
+              className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-3 text-white focus:outline-none focus:ring-1 focus:ring-white/20 focus:border-zinc-500 transition-colors"
             >
               <option value="">— {t('schedule.selectUser')} —</option>
               {users.map((u) => (
@@ -219,45 +221,45 @@ export default function ScheduleShiftModal({
             </select>
           </div>
 
-          <div className="grid grid-cols-2 gap-6">
+          <div className="grid grid-cols-2 gap-4">
             <div>
-              <label className="block text-sm text-zinc-400 mb-2">{t('schedule.from')}</label>
+              <label className="block text-sm text-zinc-500 mb-2">{t('schedule.from')}</label>
               <input
                 type="time"
                 value={startTime}
                 onChange={(e) => setStartTime(e.target.value)}
-                className="w-full bg-zinc-800 border border-zinc-700 rounded-3xl px-5 py-5 text-white text-lg"
+                className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-4 text-white text-lg focus:outline-none focus:ring-1 focus:ring-white/20 focus:border-zinc-500 transition-colors"
               />
             </div>
             <div>
-              <label className="block text-sm text-zinc-400 mb-2">{t('schedule.to')}</label>
+              <label className="block text-sm text-zinc-500 mb-2">{t('schedule.to')}</label>
               <input
                 type="time"
                 value={endTime}
                 onChange={(e) => setEndTime(e.target.value)}
-                className="w-full bg-zinc-800 border border-zinc-700 rounded-3xl px-5 py-5 text-white text-lg"
+                className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-4 text-white text-lg focus:outline-none focus:ring-1 focus:ring-white/20 focus:border-zinc-500 transition-colors"
               />
             </div>
           </div>
         </div>
 
         {/* Кнопки */}
-        <div className="flex border-t border-zinc-700">
+        <div className="flex border-t border-zinc-800 flex-shrink-0">
           <button
             onClick={onClose}
-            className="flex-1 py-6 text-zinc-400 hover:bg-zinc-800 font-medium text-lg transition"
+            className="flex-1 py-5 sm:py-4 text-zinc-400 hover:bg-zinc-800 font-medium transition-colors"
           >
             {t('common.cancel')}
           </button>
           <button
             onClick={handleSave}
             disabled={loading || !selectedUserId}
-            className="flex-1 py-6 bg-emerald-600 hover:bg-emerald-500 font-medium text-lg disabled:opacity-50 transition"
+            className="flex-1 py-5 sm:py-4 bg-emerald-600 hover:bg-emerald-500 font-medium disabled:opacity-50 transition-colors"
           >
-            {loading 
-              ? t('schedule.saving') 
-              : editingShiftId 
-                ? t('schedule.update') 
+            {loading
+              ? t('schedule.saving')
+              : editingShiftId
+                ? t('schedule.update')
                 : t('schedule.saveShift')}
           </button>
         </div>
