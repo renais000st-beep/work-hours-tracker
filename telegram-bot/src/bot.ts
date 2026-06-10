@@ -1,5 +1,5 @@
 import 'dotenv/config';
-import { Bot, InlineKeyboard } from 'grammy';
+import { Bot, InlineKeyboard, Keyboard } from 'grammy';
 import { supabase } from './supabase';
 import { getCurrentMonthShifts, getUnrecordedPlannedShifts } from './shifts';
 import { t, setLanguage } from './i18n';
@@ -14,17 +14,18 @@ const bot = new Bot(process.env.TELEGRAM_BOT_TOKEN);
 
 // ==================== ГЛАВНАЯ КЛАВИАТУРА ====================
 function getMainKeyboard() {
-  const buttons: any[][] = [
-    [{ text: '📝 ' + t('bot.writeshift') }, { text: '📋 ' + t('bot.myshift') }],
-  ];
+  const kb = new Keyboard()
+    .text('📝 ' + t('bot.writeshift'))
+    .text('📋 ' + t('bot.myshift'))
+    .row();
 
   if (process.env.WEBAPP_URL) {
-    buttons.push([{ text: '📱 Приложение', web_app: { url: process.env.WEBAPP_URL } }]);
+    kb.webApp('📱 Приложение', process.env.WEBAPP_URL).row();
   }
 
-  buttons.push([{ text: '⚙️ ' + t('bot.settings') }]);
+  kb.text('⚙️ ' + t('bot.settings'));
 
-  return { keyboard: buttons, resize_keyboard: true, one_time_keyboard: false };
+  return kb.resized();
 }
 
 // ==================== СОСТОЯНИЯ ====================
