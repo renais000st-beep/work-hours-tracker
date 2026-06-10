@@ -13,7 +13,8 @@
     "deleteConfirm": "Вы действительно хотите удалить эту смену?",
     "noData": "Нет данных",
     "telegram": "Привязать Telegram",
-    "telegramWip": "Функция в разработке"
+    "telegramLinked": "Telegram привязан",
+    "telegramHint": "Откроется бот с токеном"
   },
   "login": {
     "title": "Учёт рабочих часов",

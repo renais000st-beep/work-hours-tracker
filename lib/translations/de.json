@@ -13,7 +13,8 @@
     "deleteConfirm": "Möchten Sie diese Schicht wirklich löschen?",
     "noData": "Keine Daten",
     "telegram": "Telegram verknüpfen",
-    "telegramWip": "Funktion in Entwicklung"
+    "telegramLinked": "Telegram verknüpft",
+    "telegramHint": "Bot mit Token öffnen"
   },
   "login": {
     "title": "Arbeitszeiterfassung",

@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { useTranslation } from '@/lib/i18n';
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, startOfWeek, isSameMonth } from 'date-fns';
 import { de } from 'date-fns/locale';
-import { LogOut, Link, LayoutDashboard, Calendar as CalendarIcon, BarChart3, Trash2, Pencil, Download, Shield, FileDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { LogOut, Link, CheckCircle2, LayoutDashboard, Calendar as CalendarIcon, BarChart3, Trash2, Pencil, Download, Shield, FileDown, ChevronLeft, ChevronRight } from 'lucide-react';
 import ShiftModal from './ShiftModal';
 import MobileNav from '@/app/components/MobileNav';
 import { useToast } from '@/app/components/Toast';
@@ -364,13 +364,22 @@ export default function Dashboard() {
           </nav>
 
           <div className="mt-auto pt-6 border-t border-zinc-700 space-y-2">
-            {!hasTelegramLinked && (
-              <div className="px-4 py-3 w-full rounded-2xl opacity-50 cursor-not-allowed">
-                <div className="flex items-center gap-3 text-emerald-400">
-                  <Link size={20} /> {t('common.telegram')}
-                </div>
-                <p className="text-xs text-zinc-500 mt-0.5 ml-8">{t('common.telegramWip')}</p>
+            {hasTelegramLinked ? (
+              <div className="flex items-center gap-3 px-4 py-3 rounded-2xl text-emerald-400">
+                <CheckCircle2 size={20} />
+                <span className="text-sm">{t('common.telegramLinked')}</span>
               </div>
+            ) : (
+              <button
+                onClick={handleTelegramLink}
+                className="flex items-center gap-3 px-4 py-3 w-full rounded-2xl text-emerald-400 hover:bg-zinc-800 transition-colors text-left"
+              >
+                <Link size={20} />
+                <div>
+                  <div className="text-sm">{t('common.telegram')}</div>
+                  <div className="text-xs text-zinc-500 mt-0.5">{t('common.telegramHint')}</div>
+                </div>
+              </button>
             )}
             {profile?.is_admin && (
               <button
