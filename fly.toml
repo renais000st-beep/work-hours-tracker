@@ -1,0 +1,10 @@
+app = "work-hours-tracker-bot"
+primary_region = "fra"
+
+[build]
+  dockerfile = "Dockerfile.bot"
+
+[[vm]]
+  memory = "256mb"
+  cpu_kind = "shared"
+  cpus = 1

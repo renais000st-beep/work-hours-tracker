@@ -1,0 +1,12 @@
+FROM node:22-alpine
+
+# Переводы лежат на два уровня выше src/ — воссоздаём эту структуру в контейнере
+COPY lib/translations /app/lib/translations
+
+WORKDIR /app/telegram-bot
+COPY telegram-bot/package*.json telegram-bot/tsconfig.json ./
+RUN npm ci
+
+COPY telegram-bot/src ./src
+
+CMD ["npx", "tsx", "src/bot.ts"]
