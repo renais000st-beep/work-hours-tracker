@@ -26,6 +26,7 @@ export default function MiniAppPage() {
       tg.expand();
 
       try {
+        const initDataLen = tg.initData?.length ?? 0;
         const res = await fetch('/api/mini-app/auth', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -34,10 +35,11 @@ export default function MiniAppPage() {
 
         if (!res.ok) {
           const err = await res.json();
+          const debugInfo = `[${res.status}] ${err.error} | initData.length=${initDataLen}`;
           setError(
             err.error === 'User not linked'
               ? 'Сначала привяжи Telegram в приложении'
-              : 'Ошибка авторизации'
+              : debugInfo
           );
           setLoading(false);
           return;
