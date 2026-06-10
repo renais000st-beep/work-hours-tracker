@@ -67,12 +67,26 @@
   },
   "shiftModal": {
     "title": "Schicht hinzufügen",
+    "editTitle": "Schicht bearbeiten",
     "date": "Datum",
     "startTime": "Von",
     "loading": "Wird geladen...",
     "endTime": "Bis",
     "saveShift": "Schicht speichern",
+    "update": "Schicht aktualisieren",
+    "updated": "Schicht aktualisiert",
     "cancel": "Abbrechen"
+  },
+  "firstLogin": {
+    "title": "Willkommen!",
+    "subtitle": "Bitte geben Sie Ihren Vor- und Nachnamen ein. Dies ist nur einmal erforderlich.",
+    "firstName": "Vorname",
+    "lastName": "Nachname",
+    "save": "Speichern und fortfahren",
+    "saving": "Wird gespeichert...",
+    "enterName": "Bitte Vor- und Nachnamen eingeben",
+    "error": "Fehler beim Speichern",
+    "saved": "Daten gespeichert!"
   },
   "admin": {
     "table": {
@@ -251,6 +265,10 @@
     "other": "Andere Datum",
     "confirm": "Bestätigen",
     "change_time": "Zeit ändern",
-    "cancell": "Abbrechen"
+    "cancell": "Abbrechen",
+    "invalidLink": "Ungültiger Verknüpfungslink.",
+    "linkExpired": "Link abgelaufen. Bitte neuen Link in der App anfordern.",
+    "linkUsed": "Dieser Link wurde bereits verwendet.",
+    "notLinked": "Ihr Telegram-Konto ist nicht verknüpft. Bitte App öffnen."
   }
 }

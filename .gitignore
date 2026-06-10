@@ -39,3 +39,11 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# telegram bot
+telegram-bot/node_modules
+telegram-bot/.env
+
+# misc local
+STATE.md
+debug.log

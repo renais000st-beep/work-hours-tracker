@@ -4,6 +4,8 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useTranslation } from '@/lib/i18n';
 import { Trash2 } from 'lucide-react';
+import { useToast } from '@/app/components/Toast';
+import { GROUP_DEFAULT_TIMES } from '@/lib/constants';
 
 interface Props {
   isOpen: boolean;
@@ -34,15 +36,14 @@ export default function ScheduleShiftModal({
   const [editingShiftId, setEditingShiftId] = useState<string | null>(null);
 
   const { t } = useTranslation();
+  const { showToast } = useToast();
 
   useEffect(() => {
     if (!activeGroup) return;
-    if (activeGroup.toLowerCase().includes("ingo") || activeGroup.toLowerCase().includes("kuby")) {
-      setStartTime('10:00');
-      setEndTime('00:00');
-    } else if (activeGroup.toLowerCase().includes("stefan") || activeGroup.toLowerCase().includes("kasjutin")) {
-      setStartTime('07:00');
-      setEndTime('20:00');
+    const key = Object.keys(GROUP_DEFAULT_TIMES).find(k => activeGroup.toLowerCase().includes(k));
+    if (key) {
+      setStartTime(GROUP_DEFAULT_TIMES[key].start);
+      setEndTime(GROUP_DEFAULT_TIMES[key].end);
     }
   }, [activeGroup]);
 
@@ -117,7 +118,7 @@ export default function ScheduleShiftModal({
       setShiftsOnDate(prev => prev.filter(s => s.id !== shiftId));
       if (onShiftDeleted) onShiftDeleted(shiftId);
     } else {
-      alert(t('schedule.Alert.deleteFailed'));
+      showToast(t('schedule.Alert.deleteFailed'), 'error');
     }
   };
 
@@ -147,7 +148,7 @@ export default function ScheduleShiftModal({
       if (!error && onShiftUpdated) {
         onShiftUpdated({ id: editingShiftId, ...shiftData });
       } else if (error) {
-        alert(t('schedule.Alert.saveFailed'));
+        showToast(t('schedule.Alert.saveFailed'), 'error');
       }
     } else {
       const { data, error } = await supabase
@@ -159,7 +160,7 @@ export default function ScheduleShiftModal({
       if (!error && data) {
         onShiftAdded(data);
       } else if (error) {
-        alert(t('schedule.Alert.saveFailed'));
+        showToast(t('schedule.Alert.saveFailed'), 'error');
       }
     }
 

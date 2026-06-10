@@ -1,13 +1,15 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
-import { ArrowLeft, Download, Trash2, Users, UserPlus, FileDown, X, Pencil, Settings } from 'lucide-react';
+import { ArrowLeft, Download, Trash2, Users, UserPlus, FileDown, X, Pencil, Settings, ChevronUp, ChevronDown, Search, SlidersHorizontal } from 'lucide-react';
 import * as XLSX from 'xlsx';
 import { useTranslation } from '@/lib/i18n';
+import MobileNav from '@/app/components/MobileNav';
+import { useToast } from '@/app/components/Toast';
 
 export default function AdminPanel() {
   const [activeGroupFilter, setActiveGroupFilter] = useState<string>('all');
@@ -30,10 +32,19 @@ export default function AdminPanel() {
     role: 'viewer' as 'editor' | 'viewer'
   });
 
-  const [allGroups, setAllGroups] = useState<any[]>([]); // все группы из базы
+  const [allGroups, setAllGroups] = useState<any[]>([]);
+  const [confirmDeleteShiftId, setConfirmDeleteShiftId] = useState<number | null>(null);
+  const [confirmDeleteUserId, setConfirmDeleteUserId] = useState<string | null>(null);
+  const confirmShiftTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const confirmUserTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const [sortField, setSortField] = useState<'date' | 'user' | 'total'>('date');
+  const [sortDir, setSortDir] = useState<'asc' | 'desc'>('asc');
+  const [userSearch, setUserSearch] = useState('');
+  const [filtersOpen, setFiltersOpen] = useState(false);
 
   const router = useRouter();
   const { t } = useTranslation();
+  const { showToast } = useToast();
 
   useEffect(() => {
     loadAdminData();
@@ -46,15 +57,15 @@ export default function AdminPanel() {
       if (!user) return router.push('/login');
 
       // Проверка админа
-      const { data: profile } = await supabase
+        const { data: profile } = await supabase
         .from('profiles')
         .select('is_admin')
         .eq('id', user.id)
         .single();
 
       if (!profile?.is_admin) {
-        alert(t('admin.noAllert'));
-        return router.push('/dashboard');
+        router.push('/dashboard');
+        return;
       }
 
       // Загружаем пользователей
@@ -216,7 +227,7 @@ export default function AdminPanel() {
   };
         const createNewUser = async () => {
     if (!newUser.email || !newUser.password) {
-      alert(t('admin.Alert.writeEmail'));
+      showToast(t('admin.Alert.writeEmail'), 'info');
       return;
     }
 
@@ -268,26 +279,21 @@ export default function AdminPanel() {
         await supabase.auth.setSession(currentSession.session); // возвращаем сессию админа
       }
 
-      alert(`✅ ${t('admin.Alert.User')} ${newUser.email} ${t('admin.Alert.success')}`);
+      showToast(`${newUser.email} ${t('admin.Alert.success')}`, 'success');
 
       setShowAddUserModal(false);
       setNewUser({ email: '', password: '', groups: [], role: 'viewer' });
       loadAdminData();
 
-      // Принудительно обновляем страницу, чтобы гарантированно остаться в админке
-      setTimeout(() => {
-        window.location.reload();
-      }, 300);
-
     } catch (err: any) {
-      alert(t('admin.Alert.Error') + (err.message || err));
+      showToast(t('admin.Alert.Error') + (err.message || err), 'error');
     } finally {
       setCreating(false);
     }
   };
     const createNewGroup = async () => {
     if (!newGroupName.trim()) {
-      alert(t('admin.Alert.nameGroup'));
+      showToast(t('admin.Alert.nameGroup'), 'info');
       return;
     }
 
@@ -299,13 +305,13 @@ export default function AdminPanel() {
 
       if (error) throw error;
 
-      alert(`✅ ${t('admin.Alert.group')} "${newGroupName}" ${t('admin.Alert.success')}`);
+      showToast(`${t('admin.Alert.group')} "${newGroupName}" ${t('admin.Alert.success')}`, 'success');
       setShowNewGroupModal(false);
       setNewGroupName('');
-      loadAdminData(); // обновляем данные
+      loadAdminData();
 
     } catch (err: any) {
-      alert(t('admin.Alert.Error') + err.message);
+      showToast(t('admin.Alert.Error') + err.message, 'error');
     } finally {
       setCreatingGroup(false);
     }
@@ -313,11 +319,17 @@ export default function AdminPanel() {
 
     // Удаление пользователя
   const deleteUser = async (userId: string) => {
-    if (!confirm(t('admin.Alert.confirmdeleteUser'))) return;
-
-    const { error } = await supabase.from('profiles').delete().eq('id', userId);
-    if (error) alert(t('admin.Alert.errordelete') + error.message);
-    else loadAdminData();
+    if (confirmDeleteUserId === userId) {
+      if (confirmUserTimer.current) clearTimeout(confirmUserTimer.current);
+      setConfirmDeleteUserId(null);
+      const { error } = await supabase.from('profiles').delete().eq('id', userId);
+      if (error) showToast(t('admin.Alert.errordelete') + error.message, 'error');
+      else { showToast(t('admin.Alert.shiftdeleted'), 'success'); loadAdminData(); }
+    } else {
+      setConfirmDeleteUserId(userId);
+      if (confirmUserTimer.current) clearTimeout(confirmUserTimer.current);
+      confirmUserTimer.current = setTimeout(() => setConfirmDeleteUserId(null), 3000);
+    }
   };
 
   // Обновление роли
@@ -327,7 +339,7 @@ export default function AdminPanel() {
       .update({ role: newRole })
       .eq('user_id', userId);
 
-    if (error) alert(t('admin.Alert.NewRoleError') + error.message);
+    if (error) showToast(t('admin.Alert.NewRoleError') + error.message, 'error');
     else loadAdminData();
   };
 
@@ -343,7 +355,7 @@ export default function AdminPanel() {
           .single();
 
         if (!group) {
-          alert(t('admin.Alert.groupNotFound'));
+          showToast(t('admin.Alert.groupNotFound'), 'error');
           return;
         }
 
@@ -374,157 +386,263 @@ export default function AdminPanel() {
 
       loadAdminData(); // обновляем данные
     } catch (err: any) {
-      alert(t('admin.Alert.errordeleteGroup') + err.message);
+      showToast(t('admin.Alert.errordeleteGroup') + err.message, 'error');
     }
   };
 
-    const handleDeleteShift = async (id: number) => {
-    if (!confirm(t('admin.Alert.confirmdelete'))) return;
-
-    const { error } = await supabase
-      .from('work_shifts')
-      .delete()
-      .eq('id', id);
-
-    if (error) {
-      alert(t('admin.Alert.errordelete'));
+  const handleDeleteShift = async (id: number) => {
+    if (confirmDeleteShiftId === id) {
+      if (confirmShiftTimer.current) clearTimeout(confirmShiftTimer.current);
+      setConfirmDeleteShiftId(null);
+      const { error } = await supabase.from('work_shifts').delete().eq('id', id);
+      if (error) showToast(t('admin.Alert.errordelete'), 'error');
+      else { showToast(t('admin.Alert.shiftdeleted'), 'success'); loadAdminData(); }
     } else {
-      alert(t('admin.Alert.shiftdeleted'));
-      loadAdminData(); // обновляем таблицу
+      setConfirmDeleteShiftId(id);
+      if (confirmShiftTimer.current) clearTimeout(confirmShiftTimer.current);
+      confirmShiftTimer.current = setTimeout(() => setConfirmDeleteShiftId(null), 3000);
     }
   };
 
-  if (loading) return <div className="min-h-screen bg-zinc-950 flex items-center justify-center text-white">{t('admin.loadAdminData')}</div>;
+  const handleSort = (field: typeof sortField) => {
+    if (sortField === field) setSortDir(d => d === 'asc' ? 'desc' : 'asc');
+    else { setSortField(field); setSortDir('asc'); }
+  };
+
+  const SortIcon = ({ field }: { field: typeof sortField }) => {
+    if (sortField !== field) return <ChevronUp className="size-3 opacity-30" />;
+    return sortDir === 'asc' ? <ChevronUp className="size-3" /> : <ChevronDown className="size-3" />;
+  };
+
+  const sortedShifts = [...filteredShifts].sort((a, b) => {
+    const mul = sortDir === 'asc' ? 1 : -1;
+    if (sortField === 'date') return mul * (new Date(a.date).getTime() - new Date(b.date).getTime());
+    if (sortField === 'total') return mul * ((a.total_hours || 0) - (b.total_hours || 0));
+    if (sortField === 'user') {
+      const ua = users.find(u => u.id === a.user_id)?.username || '';
+      const ub = users.find(u => u.id === b.user_id)?.username || '';
+      return mul * ua.localeCompare(ub);
+    }
+    return 0;
+  });
+
+  const filteredUsers = users.filter(u =>
+    !userSearch || (u.username || u.email || '').toLowerCase().includes(userSearch.toLowerCase())
+  );
+
+  if (loading) return (
+    <div className="min-h-screen bg-zinc-950 text-white">
+      <div className="border-b border-zinc-800 bg-zinc-900/90 px-6 py-4 flex justify-between items-center">
+        <div className="w-32 h-8 bg-zinc-800 rounded-lg animate-pulse" />
+        <div className="w-40 h-8 bg-zinc-800 rounded-lg animate-pulse" />
+        <div className="w-20 h-8 bg-zinc-800 rounded-lg animate-pulse" />
+      </div>
+      <div className="max-w-7xl mx-auto px-6 py-6 space-y-3">
+        {Array.from({ length: 8 }).map((_, i) => (
+          <div key={i} className="h-14 bg-zinc-900 border border-zinc-800 rounded-xl animate-pulse" style={{ animationDelay: `${i * 40}ms` }} />
+        ))}
+      </div>
+    </div>
+  );
 
   return (
     <div className="min-h-screen bg-zinc-950 text-white">
       {/* Header */}
       <div className="border-b border-zinc-800 bg-zinc-900/90 backdrop-blur-sm sticky top-0 z-50">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex justify-between items-center">
-          <button onClick={() => router.push('/dashboard')} className="flex items-center gap-2 text-zinc-400 hover:text-white transition-colors">
-            <ArrowLeft size={20} /> {t('admin.backtoDashboard')}
+
+        {/* Title bar */}
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 py-3.5 flex justify-between items-center">
+          <button onClick={() => router.push('/dashboard')} className="flex items-center gap-2 text-zinc-400 hover:text-white transition-colors min-h-[44px]">
+            <ArrowLeft size={20} />
+            <span className="hidden sm:inline text-sm">{t('admin.backtoDashboard')}</span>
           </button>
-          <h1 className="text-2xl font-bold tracking-tight flex items-center gap-2"><Settings size={22} /> {t('admin.title')}</h1>
-          <button onClick={() => supabase.auth.signOut().then(() => router.push('/login'))} className="text-zinc-400 hover:text-white">
-            {t('admin.logout')}
-          </button>
+
+          <h1 className="text-lg sm:text-2xl font-bold tracking-tight flex items-center gap-2">
+            <Settings size={18} className="sm:hidden" />
+            <Settings size={22} className="hidden sm:block" />
+            {t('admin.title')}
+          </h1>
+
+          <div className="flex items-center gap-2">
+            {/* Mobile: filter toggle button */}
+            <button
+              onClick={() => setFiltersOpen(o => !o)}
+              className="lg:hidden relative flex items-center gap-1.5 bg-zinc-800 hover:bg-zinc-700 active:scale-95 px-3 py-2 rounded-xl transition-all text-sm font-medium min-h-[44px]"
+            >
+              <SlidersHorizontal size={15} />
+              <ChevronDown size={14} className={`transition-transform duration-200 ${filtersOpen ? 'rotate-180' : ''}`} />
+              {(activeGroupFilter !== 'all' || selectedMonth !== 'all' || selectedUserId !== 'all') && (
+                <span className="absolute -top-0.5 -right-0.5 w-2 h-2 bg-emerald-500 rounded-full" />
+              )}
+            </button>
+
+            {/* Desktop: logout */}
+            <button onClick={() => supabase.auth.signOut().then(() => router.push('/login'))} className="hidden lg:block text-zinc-400 hover:text-white text-sm transition-colors">
+              {t('admin.logout')}
+            </button>
+          </div>
         </div>
 
-                {/* Фильтры */}
-        <div className="max-w-7xl mx-auto px-6 pb-4 flex flex-wrap gap-4">
-          
-          {/* 1. Группа — теперь динамическая */}
-          <select 
-            value={activeGroupFilter} 
-            onChange={(e) => setActiveGroupFilter(e.target.value)}
-            className="bg-zinc-800 border border-zinc-700 text-white px-4 py-2 rounded-xl"
-          >
-            <option value="all">{t('admin.allGroups') || t('admin.allGroups')}</option>
-            {allGroups.map((group) => (
-              <option key={group.id} value={group.name}>
-                {group.name}
-              </option>
-            ))}
+        {/* Desktop filters — always visible */}
+        <div className="hidden lg:flex flex-wrap gap-4 max-w-7xl mx-auto px-6 pb-4">
+          <select value={activeGroupFilter} onChange={(e) => setActiveGroupFilter(e.target.value)} className="bg-zinc-800 border border-zinc-700 text-white px-4 py-2 rounded-xl">
+            <option value="all">{t('admin.allGroups')}</option>
+            {allGroups.map((group) => <option key={group.id} value={group.name}>{group.name}</option>)}
           </select>
 
-          {/* 2. Месяц — динамический */}
-          <select 
-            value={selectedMonth} 
-            onChange={(e) => setSelectedMonth(e.target.value)}
-            className="bg-zinc-800 border border-zinc-700 text-white px-4 py-2 rounded-xl"
-          >
-            <option value="all">{t('admin.allMonths') || t('admin.allMonths')}</option>
-            
+          <select value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} className="bg-zinc-800 border border-zinc-700 text-white px-4 py-2 rounded-xl">
+            <option value="all">{t('admin.allMonths')}</option>
             {monthList.map((monthKey) => {
               const monthName = format(new Date(monthKey + '-01'), 'LLLL yyyy', { locale: de });
-              return (
-                <option key={monthKey} value={monthKey}>
-                  {monthName}
-                </option>
-              );
+              return <option key={monthKey} value={monthKey}>{monthName}</option>;
             })}
           </select>
 
-          {/* 3. Пользователь */}
-          <select 
-            value={selectedUserId} 
-            onChange={(e) => setSelectedUserId(e.target.value)}
-            className="bg-zinc-800 border border-zinc-700 text-white px-4 py-2 rounded-xl flex-1 min-w-[200px]"
-          >
+          <select value={selectedUserId} onChange={(e) => setSelectedUserId(e.target.value)} className="bg-zinc-800 border border-zinc-700 text-white px-4 py-2 rounded-xl flex-1 min-w-[200px]">
             <option value="all">{t('admin.allUsers')}</option>
-            {users.map(u => (
-              <option key={u.id} value={u.id}>
-                {u.username || u.email}
-              </option>
-            ))}
+            {users.map(u => <option key={u.id} value={u.id}>{u.username || u.email}</option>)}
           </select>
 
-          <button onClick={downloadExcel} className="bg-emerald-600 hover:bg-emerald-500 px-5 py-2 rounded-xl flex items-center gap-2">
+          <button onClick={downloadExcel} className="bg-emerald-600 hover:bg-emerald-500 px-5 py-2 rounded-xl flex items-center gap-2 transition-colors">
             <Download size={20} /> {t('admin.downloadExcel')}
           </button>
-
           <button onClick={downloadPDF} className="bg-rose-600 hover:bg-rose-500 px-5 py-2 rounded-xl flex items-center gap-2 text-white transition-colors">
             <FileDown size={18} /> {t('admin.downloadPDF')}
           </button>
-
-          <button
-            onClick={() => setShowEditUsersModal(true)}
-            className="bg-zinc-700 hover:bg-zinc-600 px-5 py-2 rounded-xl flex items-center gap-2 text-white transition-colors">
+          <button onClick={() => setShowEditUsersModal(true)} className="bg-zinc-700 hover:bg-zinc-600 px-5 py-2 rounded-xl flex items-center gap-2 text-white transition-colors">
             <Pencil size={16} /> {t('admin.editUsers')}
           </button>
-
-          <button 
-            onClick={() => setShowAddUserModal(true)}
-            className="bg-emerald-600 hover:bg-emerald-500 px-5 py-2 rounded-xl flex items-center gap-2">
+          <button onClick={() => setShowAddUserModal(true)} className="bg-emerald-600 hover:bg-emerald-500 px-5 py-2 rounded-xl flex items-center gap-2 transition-colors">
             <UserPlus size={20} /> {t('admin.newUser')}
           </button>
-
-          <button 
-            onClick={() => setShowNewGroupModal(true)}
-            className="bg-violet-600 hover:bg-violet-500 px-5 py-2 rounded-xl flex items-center gap-2">
+          <button onClick={() => setShowNewGroupModal(true)} className="bg-violet-600 hover:bg-violet-500 px-5 py-2 rounded-xl flex items-center gap-2 transition-colors">
             <Users size={20} /> {t('admin.newGroup')}
           </button>
         </div>
+
+        {/* Mobile filters — collapsible drawer */}
+        <div className={`lg:hidden overflow-hidden transition-[max-height,opacity] duration-300 ease-in-out ${filtersOpen ? 'max-h-[700px] opacity-100' : 'max-h-0 opacity-0'}`}>
+          <div className="px-4 pb-5 pt-3 space-y-3 border-t border-zinc-800">
+
+            {/* Selects: группа + месяц в ряд */}
+            <div className="grid grid-cols-2 gap-3">
+              <div>
+                <label className="text-xs text-zinc-500 mb-1.5 block">{t('admin.allGroups')}</label>
+                <select value={activeGroupFilter} onChange={(e) => setActiveGroupFilter(e.target.value)} className="w-full bg-zinc-800 border border-zinc-700 text-white px-3 py-2.5 rounded-xl text-sm">
+                  <option value="all">{t('admin.allGroups')}</option>
+                  {allGroups.map((group) => <option key={group.id} value={group.name}>{group.name}</option>)}
+                </select>
+              </div>
+              <div>
+                <label className="text-xs text-zinc-500 mb-1.5 block">{t('admin.allMonths')}</label>
+                <select value={selectedMonth} onChange={(e) => setSelectedMonth(e.target.value)} className="w-full bg-zinc-800 border border-zinc-700 text-white px-3 py-2.5 rounded-xl text-sm">
+                  <option value="all">{t('admin.allMonths')}</option>
+                  {monthList.map((monthKey) => {
+                    const monthName = format(new Date(monthKey + '-01'), 'LLLL yyyy', { locale: de });
+                    return <option key={monthKey} value={monthKey}>{monthName}</option>;
+                  })}
+                </select>
+              </div>
+            </div>
+
+            {/* Пользователь — полная ширина */}
+            <div>
+              <label className="text-xs text-zinc-500 mb-1.5 block">{t('admin.allUsers')}</label>
+              <select value={selectedUserId} onChange={(e) => setSelectedUserId(e.target.value)} className="w-full bg-zinc-800 border border-zinc-700 text-white px-3 py-2.5 rounded-xl text-sm">
+                <option value="all">{t('admin.allUsers')}</option>
+                {users.map(u => <option key={u.id} value={u.id}>{u.username || u.email}</option>)}
+              </select>
+            </div>
+
+            {/* Action buttons 2×2 */}
+            <div className="grid grid-cols-2 gap-2">
+              <button onClick={downloadExcel} className="bg-emerald-600 hover:bg-emerald-500 active:scale-95 py-3 rounded-xl flex items-center justify-center gap-2 text-sm font-medium transition-all">
+                <Download size={16} /> {t('admin.downloadExcel')}
+              </button>
+              <button onClick={downloadPDF} className="bg-rose-600 hover:bg-rose-500 active:scale-95 py-3 rounded-xl flex items-center justify-center gap-2 text-sm font-medium text-white transition-all">
+                <FileDown size={16} /> {t('admin.downloadPDF')}
+              </button>
+              <button onClick={() => { setShowEditUsersModal(true); setFiltersOpen(false); }} className="bg-zinc-700 hover:bg-zinc-600 active:scale-95 py-3 rounded-xl flex items-center justify-center gap-2 text-sm font-medium text-white transition-all">
+                <Pencil size={16} /> {t('admin.editUsers')}
+              </button>
+              <button onClick={() => { setShowAddUserModal(true); setFiltersOpen(false); }} className="bg-emerald-600 hover:bg-emerald-500 active:scale-95 py-3 rounded-xl flex items-center justify-center gap-2 text-sm font-medium transition-all">
+                <UserPlus size={16} /> {t('admin.newUser')}
+              </button>
+              <button onClick={() => { setShowNewGroupModal(true); setFiltersOpen(false); }} className="col-span-2 bg-violet-600 hover:bg-violet-500 active:scale-95 py-3 rounded-xl flex items-center justify-center gap-2 text-sm font-medium transition-all">
+                <Users size={16} /> {t('admin.newGroup')}
+              </button>
+            </div>
+
+            {/* Logout на мобилке */}
+            <button onClick={() => supabase.auth.signOut().then(() => router.push('/login'))} className="w-full py-3 text-zinc-400 hover:text-white border border-zinc-700 rounded-xl text-sm transition-colors">
+              {t('admin.logout')}
+            </button>
+          </div>
+        </div>
       </div>
 
-      <div className="max-w-7xl mx-auto px-6 py-6">
-        <h2 className="text-xl mb-4">{t('admin.shifts')} • {filteredShifts.length} {t('admin.records')}</h2>
+      <div className="max-w-7xl mx-auto px-6 py-6 pb-24 lg:pb-6">
+        <h2 className="text-xl mb-4 font-semibold">{t('admin.shifts')} • <span className="text-zinc-400 font-normal">{filteredShifts.length} {t('admin.records')}</span></h2>
 
         <div className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-hidden">
           <table className="w-full">
             <thead>
               <tr className="bg-zinc-800">
-                <th className="p-4 text-left">{t('admin.table.User')}</th>
-                <th className="p-4 text-left">{t('admin.table.date')}</th>
-                <th className="p-4 text-left">{t('admin.table.time')}</th>
-                <th className="p-4 text-right">{t('admin.table.total')}</th>
-                <th className="p-4 text-center">{t('admin.table.actions')}</th>
+                <th
+                  className="p-4 text-left cursor-pointer hover:bg-zinc-700 transition-colors select-none"
+                  onClick={() => handleSort('user')}
+                >
+                  <span className="flex items-center gap-1">{t('admin.table.User')} <SortIcon field="user" /></span>
+                </th>
+                <th
+                  className="p-4 text-left cursor-pointer hover:bg-zinc-700 transition-colors select-none"
+                  onClick={() => handleSort('date')}
+                >
+                  <span className="flex items-center gap-1">{t('admin.table.date')} <SortIcon field="date" /></span>
+                </th>
+                <th className="p-4 text-left font-medium text-zinc-300">{t('admin.table.time')}</th>
+                <th
+                  className="p-4 text-right cursor-pointer hover:bg-zinc-700 transition-colors select-none"
+                  onClick={() => handleSort('total')}
+                >
+                  <span className="flex items-center justify-end gap-1">{t('admin.table.total')} <SortIcon field="total" /></span>
+                </th>
+                <th className="p-4 text-center font-medium text-zinc-300">{t('admin.table.actions')}</th>
               </tr>
             </thead>
-                                        <tbody>
-                      {[...filteredShifts]
-                        .sort((a: any, b: any) => new Date(a.date).getTime() - new Date(b.date).getTime())
-                        .map((shift: any) => (
-                          <tr key={shift.id} className="border-t border-zinc-700 hover:bg-zinc-800">
-                            <td className="p-4 font-medium">
-                              {users.find(u => u.id === shift.user_id)?.username || t('admin.unknown')}
-                            </td>
-                            <td className="p-4">{format(new Date(shift.date), 'dd.MM.yyyy')}</td>
-                            <td className="p-4">{shift.start_time?.slice(0,5) || '-'} — {shift.end_time?.slice(0,5) || '-'}</td>
-                            <td className="p-4 text-right font-bold text-emerald-400">{shift.total_hours || 0} ч</td>
-                            <td className="p-4 text-center">
-  <button
-    onClick={() => handleDeleteShift(shift.id)}
-    className="text-zinc-500 hover:text-red-400 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center mx-auto">
-    <Trash2 size={15} />
-  </button>
-</td>
-                          </tr>
-                        ))}
-                    </tbody>
+            <tbody>
+              {sortedShifts.length === 0 ? (
+                <tr>
+                  <td colSpan={5} className="p-12 text-center text-zinc-500">{t('admin.noShifts')}</td>
+                </tr>
+              ) : (
+                sortedShifts.map((shift: any) => (
+                  <tr key={shift.id} className="border-t border-zinc-800 hover:bg-zinc-800/50 transition-colors">
+                    <td className="p-4 font-medium">{users.find(u => u.id === shift.user_id)?.username || t('admin.unknown')}</td>
+                    <td className="p-4">{format(new Date(shift.date), 'dd.MM.yyyy')}</td>
+                    <td className="p-4">{shift.start_time?.slice(0, 5) || '-'} — {shift.end_time?.slice(0, 5) || '-'}</td>
+                    <td className="p-4 text-right font-bold text-emerald-400">{shift.total_hours || 0} ч</td>
+                    <td className="p-4 text-center">
+                      <button
+                        onClick={() => handleDeleteShift(shift.id)}
+                        className={`min-w-[44px] min-h-[44px] flex items-center justify-center mx-auto rounded-lg transition-all text-xs font-medium px-2 ${
+                          confirmDeleteShiftId === shift.id
+                            ? 'bg-red-600 text-white scale-105'
+                            : 'text-zinc-500 hover:text-red-400'
+                        }`}
+                      >
+                        {confirmDeleteShiftId === shift.id ? '?' : <Trash2 size={15} />}
+                      </button>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
           </table>
         </div>
       </div>
+
+      <MobileNav isAdmin />
 
             {/* ==================== МОДАЛ НОВОГО ПОЛЬЗОВАТЕЛЯ ==================== */}
       {showAddUserModal && (
@@ -629,7 +747,20 @@ export default function AdminPanel() {
                 className="text-zinc-400 hover:text-white transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center"><X size={20} /></button>
             </div>
 
-            <div className="p-6 overflow-auto flex-1">
+            <div className="px-6 pt-4 pb-2">
+              <div className="relative">
+                <Search size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-zinc-500" />
+                <input
+                  type="text"
+                  placeholder="Поиск..."
+                  value={userSearch}
+                  onChange={e => setUserSearch(e.target.value)}
+                  className="w-full bg-zinc-800 border border-zinc-700 rounded-xl pl-9 pr-4 py-2.5 text-sm focus:outline-none focus:border-zinc-500 transition-colors"
+                />
+              </div>
+            </div>
+
+            <div className="px-6 pb-2 overflow-auto flex-1">
               <table className="w-full">
                 <thead>
                   <tr className="bg-zinc-800">
@@ -640,7 +771,7 @@ export default function AdminPanel() {
                   </tr>
                 </thead>
                 <tbody>
-                  {users.map((user: any) => {
+                  {filteredUsers.map((user: any) => {
                     const userGroups = user.user_groups || [];
                     const currentRole = userGroups.length > 0 ? userGroups[0].role : 'viewer';
                     const currentGroupNames = userGroups.map((ug: any) => ug.groups?.name).filter(Boolean);
@@ -702,8 +833,13 @@ export default function AdminPanel() {
                         <td className="p-4 text-center">
                           <button
                             onClick={() => deleteUser(user.id)}
-                            className="text-zinc-500 hover:text-red-400 transition-colors min-w-[44px] min-h-[44px] flex items-center justify-center mx-auto">
-                            <Trash2 size={15} />
+                            className={`min-w-[44px] min-h-[44px] flex items-center justify-center mx-auto rounded-lg transition-all text-xs font-medium px-2 ${
+                              confirmDeleteUserId === user.id
+                                ? 'bg-red-600 text-white scale-105'
+                                : 'text-zinc-500 hover:text-red-400'
+                            }`}
+                          >
+                            {confirmDeleteUserId === user.id ? '?' : <Trash2 size={15} />}
                           </button>
                         </td>
                       </tr>

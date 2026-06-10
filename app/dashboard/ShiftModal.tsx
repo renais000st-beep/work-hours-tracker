@@ -1,9 +1,10 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { format, isSunday } from 'date-fns';
 import { useTranslation } from '@/lib/i18n';
 import { germanHolidays } from '@/lib/constants';
+import { Clock } from 'lucide-react';
 
 interface Props {
   isOpen: boolean;
@@ -11,23 +12,37 @@ interface Props {
   selectedDate: string;
   group: string;
   onSave: (shiftData: any) => Promise<void>;
+  existingShift?: { id: number; start_time: string; end_time: string } | null;
 }
 
-export default function ShiftModal({ isOpen, onClose, selectedDate, group, onSave }: Props) {
+export default function ShiftModal({ isOpen, onClose, selectedDate, group, onSave, existingShift }: Props) {
   const [startTime, setStartTime] = useState('07:00');
   const [endTime, setEndTime] = useState('20:00');
   const [loading, setLoading] = useState(false);
+  const [mounted, setMounted] = useState(false);
+  const [visible, setVisible] = useState(false);
 
   const { t } = useTranslation();
 
   useEffect(() => {
     if (isOpen) {
-      setStartTime('07:00');
-      setEndTime('20:00');
+      setStartTime(existingShift?.start_time?.slice(0, 5) || '07:00');
+      setEndTime(existingShift?.end_time?.slice(0, 5) || '20:00');
+      setMounted(true);
+      requestAnimationFrame(() => setVisible(true));
+    } else {
+      setVisible(false);
+      const t = setTimeout(() => setMounted(false), 250);
+      return () => clearTimeout(t);
     }
-  }, [isOpen]);
+  }, [isOpen, existingShift]);
 
-  if (!isOpen) return null;
+  const handleClose = () => {
+    setVisible(false);
+    setTimeout(onClose, 250);
+  };
+
+  if (!mounted) return null;
 
   const calculateHours = () => {
   if (!startTime || !endTime) {
@@ -99,6 +114,7 @@ export default function ShiftModal({ isOpen, onClose, selectedDate, group, onSav
     const hours = calculateHours();
 
     const shiftData = {
+      ...(existingShift?.id ? { id: existingShift.id } : {}),
       date: selectedDate,
       start_time: startTime,
       end_time: endTime,
@@ -118,42 +134,78 @@ export default function ShiftModal({ isOpen, onClose, selectedDate, group, onSav
 
   return (
     <div
-      className="fixed inset-0 bg-black/70 flex items-end sm:items-center justify-center z-50 sm:p-4"
-      onClick={onClose}
+      className="fixed inset-0 flex items-end sm:items-center justify-center z-50 sm:p-4"
+      onClick={handleClose}
+      style={{
+        transition: 'background-color 0.25s ease',
+        backgroundColor: visible ? 'rgba(0,0,0,0.75)' : 'rgba(0,0,0,0)',
+      }}
     >
       <div
-        className="bg-zinc-900 rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md shadow-2xl overflow-hidden animate-slide-up sm:animate-none"
-        onClick={(e) => e.stopPropagation()}
+        className="bg-zinc-900 rounded-t-2xl sm:rounded-2xl w-full sm:max-w-md shadow-2xl overflow-hidden"
+        onClick={e => e.stopPropagation()}
+        style={{
+          transition: 'opacity 0.25s ease, transform 0.25s cubic-bezier(0.16,1,0.3,1)',
+          opacity: visible ? 1 : 0,
+          transform: visible
+            ? 'translateY(0) scale(1)'
+            : window.innerWidth >= 640 ? 'translateY(8px) scale(0.97)' : 'translateY(100%)',
+        }}
       >
         <div className="px-6 py-5 border-b border-zinc-800 text-center bg-zinc-950">
-          <h2 className="text-lg font-semibold tracking-tight">{t('shiftModal.title')}</h2>
+          <h2 className="text-lg font-semibold tracking-tight">
+            {existingShift ? t('shiftModal.editTitle') || t('shiftModal.title') : t('shiftModal.title')}
+          </h2>
           <p className="text-zinc-500 text-sm mt-0.5">{selectedDate}</p>
         </div>
 
-        <div className="p-6 space-y-6">
+        <div className="p-6 space-y-5">
           <div>
-            <label className="block text-sm text-zinc-500 mb-2">{t('shiftModal.startTime')}</label>
+            <label className="block text-sm text-zinc-500 mb-2 flex items-center gap-1.5">
+              <Clock size={14} /> {t('shiftModal.startTime')}
+            </label>
             <input
               type="time"
               value={startTime}
-              onChange={(e) => setStartTime(e.target.value)}
-              className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-4 text-white text-xl sm:text-lg focus:outline-none focus:ring-1 focus:ring-white/20 focus:border-zinc-500 transition-colors"
+              onChange={e => setStartTime(e.target.value)}
+              className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-4 text-white text-2xl font-mono text-center focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-600/50 transition-all"
             />
           </div>
           <div>
-            <label className="block text-sm text-zinc-500 mb-2">{t('shiftModal.endTime')}</label>
+            <label className="block text-sm text-zinc-500 mb-2 flex items-center gap-1.5">
+              <Clock size={14} /> {t('shiftModal.endTime')}
+            </label>
             <input
               type="time"
               value={endTime}
-              onChange={(e) => setEndTime(e.target.value)}
-              className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-4 text-white text-xl sm:text-lg focus:outline-none focus:ring-1 focus:ring-white/20 focus:border-zinc-500 transition-colors"
+              onChange={e => setEndTime(e.target.value)}
+              className="w-full bg-zinc-800 border border-zinc-700 rounded-xl px-4 py-4 text-white text-2xl font-mono text-center focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-600/50 transition-all"
             />
           </div>
+
+          {/* Предпросмотр часов */}
+          {(() => {
+            const preview = calculateHours();
+            return (
+              <div className="bg-zinc-800/60 rounded-xl px-4 py-3 flex items-center justify-center gap-3">
+                <span className="text-xl font-bold text-emerald-400">{preview.total_hours}ч</span>
+                {preview.night_hours > 0 && (
+                  <span className="text-zinc-500 text-sm">({preview.day_hours}д + {preview.night_hours}н)</span>
+                )}
+                {preview.sunday_hours > 0 && (
+                  <span className="text-amber-400 text-xs font-medium">So</span>
+                )}
+                {preview.holiday_hours > 0 && (
+                  <span className="text-orange-400 text-xs font-medium">Feiertag</span>
+                )}
+              </div>
+            );
+          })()}
         </div>
 
         <div className="flex border-t border-zinc-800">
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="flex-1 py-5 sm:py-4 text-zinc-400 hover:bg-zinc-800 font-medium text-base active:bg-zinc-700 transition-colors"
           >
             {t('shiftModal.cancel')}
@@ -163,7 +215,11 @@ export default function ShiftModal({ isOpen, onClose, selectedDate, group, onSav
             disabled={loading}
             className="flex-1 py-5 sm:py-4 bg-emerald-600 hover:bg-emerald-500 font-medium text-base active:bg-emerald-700 disabled:opacity-50 transition-colors"
           >
-            {loading ? t('common.loading') : t('shiftModal.saveShift')}
+            {loading
+              ? t('shiftModal.loading')
+              : existingShift
+                ? (t('shiftModal.update') || t('shiftModal.saveShift'))
+                : t('shiftModal.saveShift')}
           </button>
         </div>
       </div>

@@ -4,15 +4,19 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import { useTranslation } from '@/lib/i18n';
+import { Eye, EyeOff } from 'lucide-react';
+import { useToast } from '@/app/components/Toast';
 
 export default function Login() {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [loading, setLoading] = useState(false);
   const [selectedLanguage, setSelectedLanguage] = useState<'ru' | 'de'>('ru');
+  const [showPassword, setShowPassword] = useState(false);
 
   const router = useRouter();
   const { t, setLanguage } = useTranslation();
+  const { showToast } = useToast();
 
   // Проверка — если уже залогинен, сразу на dashboard
   useEffect(() => {
@@ -45,7 +49,7 @@ export default function Login() {
     });
 
     if (error) {
-      alert('Ошибка входа: ' + error.message);
+      showToast(error.message, 'error');
       setLoading(false);
     } else {
       router.push('/dashboard');
@@ -96,13 +100,22 @@ export default function Login() {
 
           <div>
             <label className="text-zinc-400 text-sm block mb-2">{t('login.password')}</label>
-            <input
-              type="password"
-              value={password}
-              onChange={(e) => setPassword(e.target.value)}
-              className="w-full bg-zinc-800 border border-zinc-700 rounded-3xl px-6 py-6 text-lg text-white focus:outline-none focus:border-white transition"
-              required
-            />
+            <div className="relative">
+              <input
+                type={showPassword ? 'text' : 'password'}
+                value={password}
+                onChange={(e) => setPassword(e.target.value)}
+                className="w-full bg-zinc-800 border border-zinc-700 rounded-3xl px-6 py-6 pr-16 text-lg text-white focus:outline-none focus:border-white transition"
+                required
+              />
+              <button
+                type="button"
+                onClick={() => setShowPassword(p => !p)}
+                className="absolute right-5 top-1/2 -translate-y-1/2 text-zinc-500 hover:text-white transition-colors"
+              >
+                {showPassword ? <EyeOff size={22} /> : <Eye size={22} />}
+              </button>
+            </div>
           </div>
 
           <button
