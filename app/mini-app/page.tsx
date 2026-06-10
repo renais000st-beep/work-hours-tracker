@@ -62,6 +62,24 @@ export default function MiniAppPage() {
     }
   }, [initApp]);
 
+  // Debug info для диагностики
+  const [debugInfo, setDebugInfo] = useState<string | null>(null);
+  useEffect(() => {
+    const collect = () => {
+      const tg = window.Telegram?.WebApp;
+      setDebugInfo(JSON.stringify({
+        hasTg: !!tg,
+        version: tg?.version,
+        platform: tg?.platform,
+        initDataLen: tg?.initData?.length ?? 0,
+        hash: window.location.hash.slice(0, 80),
+        unsafe: tg?.initDataUnsafe,
+      }, null, 2));
+    };
+    collect();
+    setTimeout(collect, 2000);
+  }, []);
+
   return (
     <>
       <Script
@@ -80,6 +98,17 @@ export default function MiniAppPage() {
         <div className="flex flex-col items-center justify-center h-screen gap-3 px-8 text-center bg-zinc-950">
           <div className="text-5xl">⚠️</div>
           <p className="text-zinc-400 text-sm">{error ?? 'Ошибка загрузки'}</p>
+          {debugInfo && (
+            <pre className="text-left text-zinc-600 text-xs mt-2 overflow-auto max-h-48 w-full bg-zinc-900 p-2 rounded-xl">
+              {debugInfo}
+            </pre>
+          )}
+        </div>
+      )}
+
+      {loading && debugInfo && (
+        <div className="fixed bottom-4 left-4 right-4 bg-zinc-900 rounded-xl p-2 z-50">
+          <pre className="text-zinc-500 text-xs overflow-auto max-h-32">{debugInfo}</pre>
         </div>
       )}
 
