@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import Script from 'next/script';
 import BottomNav from '@/components/mini-app/BottomNav';
 import ShiftsList from '@/components/mini-app/ShiftsList';
@@ -13,8 +13,12 @@ export default function MiniAppPage() {
   const [profile, setProfile] = useState<UserProfile | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const initialized = useRef(false);
 
   const initApp = useCallback(async () => {
+    if (initialized.current) return;
+    initialized.current = true;
+
     const tg = window.Telegram?.WebApp;
     if (!tg) {
       setError('Открой через Telegram');
@@ -51,22 +55,12 @@ export default function MiniAppPage() {
     }
   }, []);
 
-  if (loading) {
-    return (
-      <div className="flex items-center justify-center h-screen bg-zinc-950">
-        <div className="animate-spin rounded-full h-8 w-8 border-2 border-emerald-500 border-t-transparent" />
-      </div>
-    );
-  }
-
-  if (error || !profile) {
-    return (
-      <div className="flex flex-col items-center justify-center h-screen gap-3 px-8 text-center bg-zinc-950">
-        <div className="text-5xl">⚠️</div>
-        <p className="text-zinc-400 text-sm">{error ?? 'Ошибка загрузки'}</p>
-      </div>
-    );
-  }
+  // Fallback: если SDK уже закеширован и onLoad не стрельнет
+  useEffect(() => {
+    if (window.Telegram?.WebApp) {
+      initApp();
+    }
+  }, [initApp]);
 
   return (
     <>
@@ -75,14 +69,30 @@ export default function MiniAppPage() {
         strategy="afterInteractive"
         onLoad={initApp}
       />
-      <div className="flex flex-col h-screen bg-zinc-950 overflow-hidden">
-        <div className="flex-1 overflow-y-auto pb-16">
-          {tab === 'shifts' && <ShiftsList profile={profile} />}
-          {tab === 'schedule' && <ScheduleList profile={profile} />}
-          {tab === 'profile' && <ProfileView profile={profile} />}
+
+      {loading && (
+        <div className="flex items-center justify-center h-screen bg-zinc-950">
+          <div className="animate-spin rounded-full h-8 w-8 border-2 border-emerald-500 border-t-transparent" />
         </div>
-        <BottomNav activeTab={tab} onTabChange={setTab} />
-      </div>
+      )}
+
+      {!loading && (error || !profile) && (
+        <div className="flex flex-col items-center justify-center h-screen gap-3 px-8 text-center bg-zinc-950">
+          <div className="text-5xl">⚠️</div>
+          <p className="text-zinc-400 text-sm">{error ?? 'Ошибка загрузки'}</p>
+        </div>
+      )}
+
+      {!loading && profile && (
+        <div className="flex flex-col h-screen bg-zinc-950 overflow-hidden">
+          <div className="flex-1 overflow-y-auto pb-16">
+            {tab === 'shifts' && <ShiftsList profile={profile} />}
+            {tab === 'schedule' && <ScheduleList profile={profile} />}
+            {tab === 'profile' && <ProfileView profile={profile} />}
+          </div>
+          <BottomNav activeTab={tab} onTabChange={setTab} />
+        </div>
+      )}
     </>
   );
 }
