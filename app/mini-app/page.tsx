@@ -72,7 +72,9 @@ export default function MiniAppPage() {
         version: tg?.version,
         platform: tg?.platform,
         initDataLen: tg?.initData?.length ?? 0,
-        hash: window.location.hash.slice(0, 80),
+        hashLen: window.location.hash.length,
+        hasData: window.location.hash.includes('tgWebAppData'),
+        hash: window.location.hash.slice(0, 200),
         unsafe: tg?.initDataUnsafe,
       }, null, 2));
     };
