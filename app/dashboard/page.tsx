@@ -11,8 +11,7 @@ import ShiftModal from './ShiftModal';
 import MobileNav from '@/app/components/MobileNav';
 import { useToast } from '@/app/components/Toast';
 import * as XLSX from 'xlsx';
-import { useTour } from '@/lib/tour/useTour';
-import { getDashboardCalendarSteps, getDashboardStatsSteps } from '@/lib/tour/tours';
+import { useOnboarding } from '@/lib/onboarding/OnboardingContext';
 
 function useCountUp(value: number, duration = 600) {
   const [display, setDisplay] = useState(value);
@@ -60,9 +59,7 @@ export default function Dashboard() {
   const router = useRouter();
   const { t } = useTranslation();
   const { showToast } = useToast();
-
-  const { startTour: startStatsTour } = useTour('dashboard_stats', getDashboardStatsSteps);
-  useTour('dashboard_calendar', getDashboardCalendarSteps, !loading);
+  const { startOnboarding, setUserGroupCount } = useOnboarding();
 
   const handleDateClick = (date: string) => {
     setSelectedDate(date);
@@ -108,6 +105,7 @@ export default function Dashboard() {
 
       const groups = (ugData as any[])?.map(item => item.groups?.name).filter(Boolean) || [];
       setUserAccessibleGroups(groups);
+      setUserGroupCount(groups.length);
 
       const { data } = await supabase
         .from('work_shifts')
@@ -120,6 +118,7 @@ export default function Dashboard() {
       console.error('Ошибка загрузки dashboard:', err);
     } finally {
       setLoading(false);
+      startOnboarding();
     }
   };
 
@@ -358,7 +357,7 @@ export default function Dashboard() {
               <span className="absolute left-0 top-1/2 -translate-y-1/2 w-0.5 h-6 bg-emerald-400 rounded-full" />
               <LayoutDashboard size={20} /> {t('common.dashboard')}
             </a>
-            <a href="/schedule" className="flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors">
+            <a href="/schedule" data-tour="sidebar-schedule" className="flex items-center gap-3 px-4 py-3 rounded-2xl hover:bg-zinc-800 text-zinc-400 hover:text-white transition-colors">
               <CalendarIcon size={20} /> {t('schedule.title')}
             </a>
           </nav>
@@ -404,6 +403,7 @@ export default function Dashboard() {
             {/* Табы */}
             <div className="flex bg-zinc-900 p-1 rounded-2xl w-fit mb-8">
               <button
+                data-tour="calendar-tab"
                 onClick={() => setActiveTab('calendar')}
                 className={`px-6 py-3 rounded-xl flex items-center gap-2 transition-colors ${activeTab === 'calendar' ? 'bg-white text-black shadow' : 'hover:bg-zinc-800 text-zinc-400'}`}
               >
@@ -411,12 +411,7 @@ export default function Dashboard() {
               </button>
               <button
                 data-tour="dashboard-stats-tab"
-                onClick={() => {
-                  setActiveTab('stats');
-                  if (!localStorage.getItem('tour_dashboard_stats_done')) {
-                    setTimeout(() => startStatsTour(), 500);
-                  }
-                }}
+                onClick={() => setActiveTab('stats')}
                 className={`px-6 py-3 rounded-xl flex items-center gap-2 transition-colors ${activeTab === 'stats' ? 'bg-white text-black shadow' : 'hover:bg-zinc-800 text-zinc-400'}`}
               >
                 <BarChart3 size={20} /> {t('common.stats')}
@@ -480,6 +475,7 @@ export default function Dashboard() {
                     return (
                       <button
                         key={index}
+                        data-tour={isToday && isCurrentMonth ? 'today-cell' : undefined}
                         onClick={() => isCurrentMonth && handleDateClick(dateStr)}
                         disabled={!isCurrentMonth}
                         className={`aspect-square min-h-[44px] sm:min-h-0 p-1 sm:p-2 rounded-xl border flex flex-col items-center justify-center transition-all text-sm sm:text-base active:scale-90

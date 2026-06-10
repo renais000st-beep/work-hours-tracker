@@ -4,6 +4,8 @@ import { Geist, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { I18nProvider } from '@/lib/i18n';
 import { ToastProvider } from '@/app/components/Toast';
+import { OnboardingProvider } from '@/lib/onboarding/OnboardingContext';
+import { OnboardingRenderer } from '@/lib/onboarding/OnboardingRenderer';
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -36,9 +38,12 @@ export default function RootLayout({
       <body className="min-h-full bg-zinc-950 text-white flex flex-col">
         <I18nProvider>
           <ToastProvider>
-            <div className="animate-fade-in flex flex-col flex-1">
-              {children}
-            </div>
+            <OnboardingProvider>
+              <OnboardingRenderer />
+              <div className="animate-fade-in flex flex-col flex-1">
+                {children}
+              </div>
+            </OnboardingProvider>
           </ToastProvider>
         </I18nProvider>
       </body>

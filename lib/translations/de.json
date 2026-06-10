@@ -230,32 +230,35 @@
       "saveFailed": "Fehler beim Speichern der Schicht"
       }
   },
+  "onboarding": {
+    "next": "Weiter",
+    "skip": "Einführung überspringen",
+    "step1": { "title": "Hallo!", "desc": "Hier trägst du deine Arbeitsschichten ein. Wir zeigen dir, wie es funktioniert." },
+    "step2": { "desc": "In diesem Tab trägst du deine Schichten ein." },
+    "step3": { "desc": "Klicke auf dieses Datum, um eine Schicht hinzuzufügen." },
+    "step4": { "desc": "Gib Start- und Endzeit ein und speichere die Schicht." },
+    "step5": { "desc": "Klicke jetzt auf Statistik." },
+    "step6": { "title": "Statistik", "desc": "Hier kannst du alle deine eingetragenen Schichten verfolgen." },
+    "step7": { "desc": "Wähle den Monat, für den du die Statistik sehen möchtest." },
+    "step8": { "desc": "Wähle eine Gruppe oder sieh dir alle Schichten auf einmal an." },
+    "step9": { "desc": "Gesamtstunden für den gewählten Monat. Du kannst auch PDF oder Excel herunterladen." },
+    "step10": { "desc": "Hier werden alle deine eingetragenen Schichten angezeigt." },
+    "step11": { "desc": "Gehe jetzt zum Dienstplan." },
+    "step12": { "title": "Dienstplan", "desc": "Hier sind alle geplanten Arbeitstage deiner Gruppe eingetragen." },
+    "step13": { "desc": "Klicke auf dieses Datum, um die Schichten anzusehen." },
+    "step14": { "desc": "Hier siehst du deine Schichten und die Schichten deiner Kollegen an diesem Tag." },
+    "step15": { "desc": "Hier kannst du eine Notiz für die Gruppe hinterlassen. Zum Beispiel wenn du mit jemandem getauscht hast." },
+    "step16": {
+      "title": "Einführung abgeschlossen!",
+      "desc": "Verknüpfe deinen Telegram-Account, um Schichten noch einfacher einzutragen — direkt im Bot, in wenigen Klicks.",
+      "linkTelegram": "Telegram verknüpfen",
+      "skipTelegram": "Überspringen"
+    }
+  },
   "tour": {
     "next": "Weiter",
     "prev": "Zurück",
-    "done": "Fertig",
-    "dashboard": {
-      "calendar": {
-        "step1": { "title": "Gruppe auswählen", "desc": "Wählen Sie die Gruppe, deren Schichten im Kalender angezeigt werden." },
-        "step2": { "title": "Vorheriger Monat", "desc": "Klicken Sie, um zum vorherigen Monat zu wechseln." },
-        "step3": { "title": "Nächster Monat", "desc": "Klicken Sie, um zum nächsten Monat zu wechseln." },
-        "step4": { "title": "Schichtenkalender", "desc": "Klicken Sie auf einen Tag, um eine Schicht hinzuzufügen oder zu bearbeiten." },
-        "step5": { "title": "Statistik", "desc": "Hier finden Sie Stundenzusammenfassungen und können Berichte herunterladen." }
-      },
-      "stats": {
-        "step1": { "title": "Nach Gruppe filtern", "desc": "Wählen Sie eine Gruppe oder sehen Sie alle Stunden zusammen." },
-        "step2": { "title": "Monat auswählen", "desc": "Wählen Sie den Monat, für den Sie die Statistik sehen möchten." },
-        "step3": { "title": "Zusammenfassung", "desc": "Gesamtstunden für den gewählten Monat. Hier können Sie auch Excel und PDF herunterladen." },
-        "step4": { "title": "Schichtentabelle", "desc": "Alle Schichten mit Aufschlüsselung nach Tag-, Nacht-, Sonntags- und Feiertagsstunden." }
-      }
-    },
-    "schedule": {
-      "step1": { "title": "Gruppen", "desc": "Wechseln Sie zwischen Gruppen, um deren Dienstpläne zu sehen." },
-      "step2": { "title": "Vorheriger Monat", "desc": "Klicken Sie, um zum vorherigen Monat zu wechseln." },
-      "step3": { "title": "Nächster Monat", "desc": "Klicken Sie, um zum nächsten Monat zu wechseln." },
-      "step4": { "title": "Dienstplan", "desc": "Klicken Sie auf einen Tag, um eine geplante Schicht anzuzeigen oder hinzuzufügen." },
-      "step5": { "title": "Notizen", "desc": "Hier können Sie eine Notiz für die Gruppe für den aktuellen Monat hinterlassen." }
-    }
+    "done": "Fertig"
   },
   "bot": {
     "welcomeback": "Willkommen zurück",

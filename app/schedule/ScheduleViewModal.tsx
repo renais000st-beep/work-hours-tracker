@@ -5,6 +5,8 @@ import { useTranslation } from '@/lib/i18n';
 import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
 import { X } from 'lucide-react';
+import { useOnboarding } from '@/lib/onboarding/OnboardingContext';
+import { OnboardingModalBanner } from '@/lib/onboarding/OnboardingModalBanner';
 
 interface Shift {
   username?: string;
@@ -23,6 +25,12 @@ interface Props {
 
 export default function ScheduleViewModal({ isOpen, onClose, selectedDate, shifts }: Props) {
   const { t } = useTranslation();
+  const { step, advance } = useOnboarding();
+
+  const handleClose = () => {
+    if (step === 'schedule-modal') advance();
+    onClose();
+  };
 
   if (!isOpen) return null;
 
@@ -40,10 +48,14 @@ export default function ScheduleViewModal({ isOpen, onClose, selectedDate, shift
           <h2 className="text-xl font-semibold">
             {t('schedule.Shifton')} {format(new Date(selectedDate), 'dd.MM.yyyy', { locale: de })}
           </h2>
-          <button onClick={onClose} className="p-2 hover:bg-zinc-800 rounded-2xl">
+          <button onClick={handleClose} className="p-2 hover:bg-zinc-800 rounded-2xl">
             <X size={28} />
           </button>
         </div>
+
+        {step === 'schedule-modal' && (
+          <OnboardingModalBanner message={t('onboarding.step14.desc')} />
+        )}
 
         <div className="p-6 max-h-[60vh] overflow-auto">
           {sortedShifts.length === 0 ? (
@@ -68,7 +80,7 @@ export default function ScheduleViewModal({ isOpen, onClose, selectedDate, shift
 
         <div className="p-4 border-t border-zinc-700">
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="w-full py-5 text-white bg-zinc-800 hover:bg-zinc-700 rounded-3xl font-medium text-lg"
           >
             {t('schedule.close')}

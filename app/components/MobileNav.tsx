@@ -22,7 +22,7 @@ export default function MobileNav({ isAdmin }: MobileNavProps) {
 
   const items = [
     { href: '/dashboard', icon: LayoutDashboard, label: t('common.dashboard') },
-    { href: '/schedule', icon: Calendar, label: t('schedule.title') },
+    { href: '/schedule', icon: Calendar, label: t('schedule.title'), tourId: 'sidebar-schedule' },
     ...(isAdmin ? [{ href: '/admin', icon: Shield, label: t('common.adminPanel'), admin: true }] : []),
   ];
 
@@ -39,6 +39,7 @@ export default function MobileNav({ isAdmin }: MobileNavProps) {
             <Link
               key={item.href}
               href={item.href}
+              data-tour={(item as any).tourId}
               className={`flex flex-col items-center gap-0.5 px-4 py-2 rounded-xl transition-all duration-150 active:scale-90 ${
                 active
                   ? (item as any).admin ? 'text-violet-400' : 'text-white'

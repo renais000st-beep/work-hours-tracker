@@ -11,8 +11,6 @@ import ScheduleShiftModal from './ScheduleShiftModal';
 import ScheduleViewModal from './ScheduleViewModal';
 import MobileNav from '@/app/components/MobileNav';
 import { useToast } from '@/app/components/Toast';
-import { useTour } from '@/lib/tour/useTour';
-import { getScheduleSteps } from '@/lib/tour/tours';
 
 export default function Schedule() {
   const [activeGroup, setActiveGroup] = useState<string | null>(null);
@@ -38,8 +36,6 @@ export default function Schedule() {
   const { t } = useTranslation();
   const router = useRouter();
   const { showToast } = useToast();
-
-  useTour('schedule', getScheduleSteps, !loading);
 
   useEffect(() => {
     const load = async () => {
@@ -294,6 +290,7 @@ export default function Schedule() {
                   return (
                     <button
                       key={index}
+                      data-tour={isToday && isCurrentMonth ? 'schedule-today-cell' : undefined}
                       onClick={() => isCurrentMonth && (() => { setSelectedDate(dateStr); setShowModal(true); })()}
                       disabled={!isCurrentMonth}
                       className={`aspect-square min-h-[44px] sm:min-h-0 p-1 sm:p-2 rounded-xl border flex flex-col items-center justify-center transition-all active:scale-90

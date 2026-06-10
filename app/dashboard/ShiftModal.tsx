@@ -5,6 +5,8 @@ import { format, isSunday } from 'date-fns';
 import { useTranslation } from '@/lib/i18n';
 import { germanHolidays } from '@/lib/constants';
 import { Clock } from 'lucide-react';
+import { useOnboarding } from '@/lib/onboarding/OnboardingContext';
+import { OnboardingModalBanner } from '@/lib/onboarding/OnboardingModalBanner';
 
 interface Props {
   isOpen: boolean;
@@ -23,6 +25,7 @@ export default function ShiftModal({ isOpen, onClose, selectedDate, group, onSav
   const [visible, setVisible] = useState(false);
 
   const { t } = useTranslation();
+  const { step, advance } = useOnboarding();
 
   useEffect(() => {
     if (isOpen) {
@@ -39,7 +42,10 @@ export default function ShiftModal({ isOpen, onClose, selectedDate, group, onSav
 
   const handleClose = () => {
     setVisible(false);
-    setTimeout(onClose, 250);
+    setTimeout(() => {
+      if (step === 'shift-modal') advance();
+      onClose();
+    }, 250);
   };
 
   if (!mounted) return null;
@@ -158,6 +164,10 @@ export default function ShiftModal({ isOpen, onClose, selectedDate, group, onSav
           </h2>
           <p className="text-zinc-500 text-sm mt-0.5">{selectedDate}</p>
         </div>
+
+        {step === 'shift-modal' && (
+          <OnboardingModalBanner message={t('onboarding.step4.desc')} />
+        )}
 
         <div className="p-6 space-y-5">
           <div>

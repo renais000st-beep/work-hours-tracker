@@ -322,9 +322,22 @@ export default function AdminPanel() {
     if (confirmDeleteUserId === userId) {
       if (confirmUserTimer.current) clearTimeout(confirmUserTimer.current);
       setConfirmDeleteUserId(null);
-      const { error } = await supabase.from('profiles').delete().eq('id', userId);
-      if (error) showToast(t('admin.Alert.errordelete') + error.message, 'error');
-      else { showToast(t('admin.Alert.shiftdeleted'), 'success'); loadAdminData(); }
+      const { data: { session } } = await supabase.auth.getSession();
+      const res = await fetch('/api/admin/delete-user', {
+        method: 'DELETE',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${session?.access_token}`,
+        },
+        body: JSON.stringify({ userId }),
+      });
+      if (!res.ok) {
+        const { error } = await res.json();
+        showToast(t('admin.Alert.errordelete') + (error ?? ''), 'error');
+      } else {
+        showToast(t('admin.Alert.shiftdeleted'), 'success');
+        loadAdminData();
+      }
     } else {
       setConfirmDeleteUserId(userId);
       if (confirmUserTimer.current) clearTimeout(confirmUserTimer.current);

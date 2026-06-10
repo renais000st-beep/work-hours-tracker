@@ -6,6 +6,8 @@ import { useTranslation } from '@/lib/i18n';
 import { Trash2 } from 'lucide-react';
 import { useToast } from '@/app/components/Toast';
 import { GROUP_DEFAULT_TIMES } from '@/lib/constants';
+import { useOnboarding } from '@/lib/onboarding/OnboardingContext';
+import { OnboardingModalBanner } from '@/lib/onboarding/OnboardingModalBanner';
 
 interface Props {
   isOpen: boolean;
@@ -37,6 +39,7 @@ export default function ScheduleShiftModal({
 
   const { t } = useTranslation();
   const { showToast } = useToast();
+  const { step, advance } = useOnboarding();
 
   useEffect(() => {
     if (!activeGroup) return;
@@ -171,12 +174,17 @@ export default function ScheduleShiftModal({
     setEndTime('16:00');
   };
 
+  const handleClose = () => {
+    if (step === 'schedule-modal') advance();
+    onClose();
+  };
+
   if (!isOpen) return null;
 
   return (
     <div
       className="fixed inset-0 bg-black/70 flex items-end sm:items-center justify-center z-50 sm:p-4"
-      onClick={onClose}
+      onClick={handleClose}
     >
       <div
         className="bg-zinc-900 rounded-t-2xl sm:rounded-2xl w-full sm:max-w-lg shadow-2xl overflow-hidden max-h-[95vh] flex flex-col animate-slide-up sm:animate-none"
@@ -187,6 +195,10 @@ export default function ScheduleShiftModal({
           <h2 className="text-lg font-semibold tracking-tight">{t('schedule.selectUser')}</h2>
           <p className="text-zinc-500 text-sm mt-0.5">{selectedDate}</p>
         </div>
+
+        {step === 'schedule-modal' && (
+          <OnboardingModalBanner message={t('onboarding.step14.desc')} />
+        )}
 
         {/* Существующие смены */}
         {shiftsOnDate.length > 0 && (
@@ -263,7 +275,7 @@ export default function ScheduleShiftModal({
         {/* Кнопки */}
         <div className="flex border-t border-zinc-800 flex-shrink-0">
           <button
-            onClick={onClose}
+            onClick={handleClose}
             className="flex-1 py-5 sm:py-4 text-zinc-400 hover:bg-zinc-800 font-medium transition-colors"
           >
             {t('common.cancel')}
