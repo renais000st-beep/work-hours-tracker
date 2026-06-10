@@ -36,13 +36,22 @@ function verifyInitData(initData: string): boolean {
 
 export async function POST(request: NextRequest) {
   try {
-    const { initData } = await request.json();
+    const body = await request.json();
+    const { initData } = body;
+
+    console.log('[mini-app/auth] initData length:', initData?.length ?? 0);
+    console.log('[mini-app/auth] initData preview:', initData?.slice(0, 100));
 
     if (!initData) {
+      console.error('[mini-app/auth] Empty initData — opened outside Telegram or in test mode');
       return NextResponse.json({ error: 'No initData' }, { status: 400 });
     }
 
-    if (!verifyInitData(initData)) {
+    const verified = verifyInitData(initData);
+    console.log('[mini-app/auth] HMAC verified:', verified);
+    console.log('[mini-app/auth] BOT_TOKEN set:', !!process.env.TELEGRAM_BOT_TOKEN);
+
+    if (!verified) {
       return NextResponse.json({ error: 'Invalid initData' }, { status: 401 });
     }
 
