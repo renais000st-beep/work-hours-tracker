@@ -1,6 +1,7 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useCallback } from 'react';
+import Script from 'next/script';
 import BottomNav from '@/components/mini-app/BottomNav';
 import ShiftsList from '@/components/mini-app/ShiftsList';
 import ScheduleList from '@/components/mini-app/ScheduleList';
@@ -13,47 +14,41 @@ export default function MiniAppPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const init = async () => {
-      const tg = window.Telegram?.WebApp;
-      if (!tg) {
-        setError('Открой через Telegram');
+  const initApp = useCallback(async () => {
+    const tg = window.Telegram?.WebApp;
+    if (!tg) {
+      setError('Открой через Telegram');
+      setLoading(false);
+      return;
+    }
+
+    tg.ready();
+    tg.expand();
+
+    try {
+      const res = await fetch('/api/mini-app/auth', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ initData: tg.initData }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json();
+        setError(
+          err.error === 'User not linked'
+            ? 'Сначала привяжи Telegram в приложении'
+            : 'Ошибка авторизации'
+        );
         setLoading(false);
         return;
       }
 
-      tg.ready();
-      tg.expand();
-
-      try {
-        const initDataLen = tg.initData?.length ?? 0;
-        const res = await fetch('/api/mini-app/auth', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ initData: tg.initData }),
-        });
-
-        if (!res.ok) {
-          const err = await res.json();
-          const debugInfo = `[${res.status}] ${err.error} | initData.length=${initDataLen}`;
-          setError(
-            err.error === 'User not linked'
-              ? 'Сначала привяжи Telegram в приложении'
-              : debugInfo
-          );
-          setLoading(false);
-          return;
-        }
-
-        setProfile(await res.json());
-      } catch {
-        setError('Нет соединения');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    init();
+      setProfile(await res.json());
+    } catch {
+      setError('Нет соединения');
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
   if (loading) {
@@ -74,13 +69,20 @@ export default function MiniAppPage() {
   }
 
   return (
-    <div className="flex flex-col h-screen bg-zinc-950 overflow-hidden">
-      <div className="flex-1 overflow-y-auto pb-16">
-        {tab === 'shifts' && <ShiftsList profile={profile} />}
-        {tab === 'schedule' && <ScheduleList profile={profile} />}
-        {tab === 'profile' && <ProfileView profile={profile} />}
+    <>
+      <Script
+        src="https://telegram.org/js/telegram-web-app.js"
+        strategy="afterInteractive"
+        onLoad={initApp}
+      />
+      <div className="flex flex-col h-screen bg-zinc-950 overflow-hidden">
+        <div className="flex-1 overflow-y-auto pb-16">
+          {tab === 'shifts' && <ShiftsList profile={profile} />}
+          {tab === 'schedule' && <ScheduleList profile={profile} />}
+          {tab === 'profile' && <ProfileView profile={profile} />}
+        </div>
+        <BottomNav activeTab={tab} onTabChange={setTab} />
       </div>
-      <BottomNav activeTab={tab} onTabChange={setTab} />
-    </div>
+    </>
   );
 }
