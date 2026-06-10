@@ -11,6 +11,8 @@ import ShiftModal from './ShiftModal';
 import MobileNav from '@/app/components/MobileNav';
 import { useToast } from '@/app/components/Toast';
 import * as XLSX from 'xlsx';
+import { useTour } from '@/lib/tour/useTour';
+import { getDashboardCalendarSteps, getDashboardStatsSteps } from '@/lib/tour/tours';
 
 function useCountUp(value: number, duration = 600) {
   const [display, setDisplay] = useState(value);
@@ -58,6 +60,9 @@ export default function Dashboard() {
   const router = useRouter();
   const { t } = useTranslation();
   const { showToast } = useToast();
+
+  const { startTour: startStatsTour } = useTour('dashboard_stats', getDashboardStatsSteps);
+  useTour('dashboard_calendar', getDashboardCalendarSteps, !loading);
 
   const handleDateClick = (date: string) => {
     setSelectedDate(date);
@@ -396,7 +401,13 @@ export default function Dashboard() {
                 <CalendarIcon size={20} /> {t('common.calendar')}
               </button>
               <button
-                onClick={() => setActiveTab('stats')}
+                data-tour="dashboard-stats-tab"
+                onClick={() => {
+                  setActiveTab('stats');
+                  if (!localStorage.getItem('tour_dashboard_stats_done')) {
+                    setTimeout(() => startStatsTour(), 500);
+                  }
+                }}
                 className={`px-6 py-3 rounded-xl flex items-center gap-2 transition-colors ${activeTab === 'stats' ? 'bg-white text-black shadow' : 'hover:bg-zinc-800 text-zinc-400'}`}
               >
                 <BarChart3 size={20} /> {t('common.stats')}
@@ -407,7 +418,7 @@ export default function Dashboard() {
             {activeTab === 'calendar' && (
               <div className="bg-zinc-900 border border-zinc-800 rounded-2xl p-4 sm:p-6">
                 {userAccessibleGroups.length > 0 && (
-                  <div className="flex bg-zinc-900 p-1 rounded-2xl w-fit mb-6 overflow-x-auto">
+                  <div data-tour="dashboard-group-selector" className="flex bg-zinc-900 p-1 rounded-2xl w-fit mb-6 overflow-x-auto">
                     {userAccessibleGroups.map(group => (
                       <button
                         key={group}
@@ -425,14 +436,14 @@ export default function Dashboard() {
                   onTouchStart={handleTouchStart}
                   onTouchEnd={handleTouchEnd}
                 >
-                  <button onClick={() => changeMonth(-1)} className="p-3 hover:bg-zinc-800 rounded-2xl transition-colors active:scale-90">
+                  <button data-tour="dashboard-month-prev" onClick={() => changeMonth(-1)} className="p-3 hover:bg-zinc-800 rounded-2xl transition-colors active:scale-90">
                     <ChevronLeft size={20} />
                   </button>
                   <h2 className="text-xl sm:text-2xl font-semibold capitalize select-none">
                     {format(currentMonth, 'LLLL yyyy', { locale: de })}
                     {selectedCalendarGroup && <span className="text-zinc-400 ml-2 text-lg">— {selectedCalendarGroup}</span>}
                   </h2>
-                  <button onClick={() => changeMonth(1)} className="p-3 hover:bg-zinc-800 rounded-2xl transition-colors active:scale-90">
+                  <button data-tour="dashboard-month-next" onClick={() => changeMonth(1)} className="p-3 hover:bg-zinc-800 rounded-2xl transition-colors active:scale-90">
                     <ChevronRight size={20} />
                   </button>
                 </div>
@@ -445,6 +456,7 @@ export default function Dashboard() {
 
                 <div
                   key={calKey}
+                  data-tour="dashboard-calendar-grid"
                   className="grid grid-cols-7 gap-1 sm:gap-2 animate-cal-in"
                   onTouchStart={handleTouchStart}
                   onTouchEnd={handleTouchEnd}
@@ -487,7 +499,7 @@ export default function Dashboard() {
                   {t('common.stats')}
                 </h2>
 
-                <div className="flex bg-zinc-900 p-1 rounded-2xl w-fit mb-6 overflow-x-auto">
+                <div data-tour="stats-group-selector" className="flex bg-zinc-900 p-1 rounded-2xl w-fit mb-6 overflow-x-auto">
                   <button
                     onClick={() => setSelectedStatsGroup('all')}
                     className={`px-6 py-3 rounded-xl transition-colors ${selectedStatsGroup === 'all' ? 'bg-white text-black shadow' : 'text-zinc-400 hover:bg-zinc-800'}`}
@@ -506,7 +518,7 @@ export default function Dashboard() {
                 </div>
 
                 {monthList.length > 0 && (
-                  <div className="flex gap-2 overflow-x-auto pb-2 mb-4 hide-scrollbar">
+                  <div data-tour="stats-month-selector" className="flex gap-2 overflow-x-auto pb-2 mb-4 hide-scrollbar">
                     {monthList.map((monthKey) => {
                       const monthName = format(new Date(monthKey + '-01'), 'LLLL yyyy', { locale: de });
                       const monthTotal = groupedByMonth[monthKey].reduce((sum: number, s: any) => sum + (s.total_hours || 0), 0);
@@ -529,7 +541,7 @@ export default function Dashboard() {
                 )}
 
                 {selectedStatMonth && (
-                  <div className="bg-zinc-800 border border-zinc-700 rounded-2xl p-5 flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-6">
+                  <div data-tour="stats-summary-card" className="bg-zinc-800 border border-zinc-700 rounded-2xl p-5 flex flex-col sm:flex-row justify-between sm:items-center gap-4 mb-6">
                     <div>
                       <p className="text-zinc-400 text-sm mb-1">
                         {selectedStatsGroup === 'all' ? 'Alle' : selectedStatsGroup} •{' '}
@@ -556,7 +568,7 @@ export default function Dashboard() {
                   </div>
                 )}
 
-                <div className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-x-auto">
+                <div data-tour="stats-shifts-table" className="bg-zinc-900 border border-zinc-800 rounded-2xl overflow-x-auto">
                   <table className="w-full min-w-[800px]">
                     <thead>
                       <tr className="bg-zinc-800">

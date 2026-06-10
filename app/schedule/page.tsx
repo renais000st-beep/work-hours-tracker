@@ -11,6 +11,8 @@ import ScheduleShiftModal from './ScheduleShiftModal';
 import ScheduleViewModal from './ScheduleViewModal';
 import MobileNav from '@/app/components/MobileNav';
 import { useToast } from '@/app/components/Toast';
+import { useTour } from '@/lib/tour/useTour';
+import { getScheduleSteps } from '@/lib/tour/tours';
 
 export default function Schedule() {
   const [activeGroup, setActiveGroup] = useState<string | null>(null);
@@ -36,6 +38,8 @@ export default function Schedule() {
   const { t } = useTranslation();
   const router = useRouter();
   const { showToast } = useToast();
+
+  useTour('schedule', getScheduleSteps, !loading);
 
   useEffect(() => {
     const load = async () => {
@@ -240,7 +244,7 @@ export default function Schedule() {
         <div className="flex-1 lg:ml-64">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 lg:py-8 pb-24 lg:pb-8">
             {/* Group tabs */}
-            <div className="flex gap-2 bg-zinc-900 p-1 rounded-2xl w-fit mb-8 overflow-x-auto">
+            <div data-tour="schedule-group-tabs" className="flex gap-2 bg-zinc-900 p-1 rounded-2xl w-fit mb-8 overflow-x-auto">
               {userGroups.map(group => (
                 <button
                   key={group.id}
@@ -259,13 +263,13 @@ export default function Schedule() {
                 onTouchStart={handleTouchStart}
                 onTouchEnd={handleTouchEnd}
               >
-                <button onClick={() => changeMonth(-1)} className="p-3 hover:bg-zinc-800 rounded-2xl transition-colors active:scale-90">
+                <button data-tour="schedule-month-prev" onClick={() => changeMonth(-1)} className="p-3 hover:bg-zinc-800 rounded-2xl transition-colors active:scale-90">
                   <ChevronLeft size={20} />
                 </button>
                 <h2 className="text-xl sm:text-2xl font-semibold capitalize select-none">
                   {format(currentMonth, 'LLLL yyyy', { locale: de })}
                 </h2>
-                <button onClick={() => changeMonth(1)} className="p-3 hover:bg-zinc-800 rounded-2xl transition-colors active:scale-90">
+                <button data-tour="schedule-month-next" onClick={() => changeMonth(1)} className="p-3 hover:bg-zinc-800 rounded-2xl transition-colors active:scale-90">
                   <ChevronRight size={20} />
                 </button>
               </div>
@@ -276,6 +280,7 @@ export default function Schedule() {
 
               <div
                 key={calKey}
+                data-tour="schedule-calendar-grid"
                 className="grid grid-cols-7 gap-1 sm:gap-2 animate-cal-in"
                 onTouchStart={handleTouchStart}
                 onTouchEnd={handleTouchEnd}
@@ -308,7 +313,7 @@ export default function Schedule() {
             </div>
 
             {/* Заметки */}
-            <div className="mt-6 bg-zinc-900 border border-zinc-800 rounded-2xl p-5">
+            <div data-tour="schedule-notes-area" className="mt-6 bg-zinc-900 border border-zinc-800 rounded-2xl p-5">
               <h3 className="text-lg font-semibold mb-4 flex items-center gap-2">
                 <NotebookText size={20} /> {t('schedule.Note.Notes')}
               </h3>

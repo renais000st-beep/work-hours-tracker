@@ -1,4 +1,5 @@
 @import "tailwindcss";
+@import "driver.js/dist/driver.css";
 
 :root {
   --background: #ffffff;
@@ -94,4 +95,65 @@ input[type="time"]::-webkit-calendar-picker-indicator {
   filter: invert(1);
   opacity: 0.4;
   cursor: pointer;
+}
+
+/* ---- Driver.js dark theme ---- */
+.driver-popover {
+  background-color: #18181b !important;
+  border: 1px solid #3f3f46 !important;
+  border-radius: 1rem !important;
+  color: #fff !important;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.8) !important;
+}
+.driver-popover-title {
+  color: #fff !important;
+  font-size: 1rem !important;
+  font-weight: 600 !important;
+}
+.driver-popover-description {
+  color: #a1a1aa !important;
+  font-size: 0.875rem !important;
+  line-height: 1.5 !important;
+}
+.driver-popover-footer button {
+  border-radius: 0.5rem !important;
+  font-weight: 500 !important;
+}
+.driver-popover-next-btn {
+  background-color: #10b981 !important;
+  color: #fff !important;
+  border: none !important;
+  text-shadow: none !important;
+}
+.driver-popover-next-btn:hover {
+  background-color: #059669 !important;
+}
+.driver-popover-prev-btn {
+  background-color: #27272a !important;
+  color: #a1a1aa !important;
+  border: 1px solid #3f3f46 !important;
+  text-shadow: none !important;
+}
+.driver-popover-prev-btn:hover {
+  background-color: #3f3f46 !important;
+  color: #fff !important;
+}
+.driver-popover-close-btn {
+  color: #71717a !important;
+}
+.driver-popover-close-btn:hover {
+  color: #fff !important;
+  background: transparent !important;
+}
+.driver-popover-arrow-side-left .driver-popover-arrow {
+  border-right-color: #3f3f46 !important;
+}
+.driver-popover-arrow-side-right .driver-popover-arrow {
+  border-left-color: #3f3f46 !important;
+}
+.driver-popover-arrow-side-top .driver-popover-arrow {
+  border-bottom-color: #3f3f46 !important;
+}
+.driver-popover-arrow-side-bottom .driver-popover-arrow {
+  border-top-color: #3f3f46 !important;
 }

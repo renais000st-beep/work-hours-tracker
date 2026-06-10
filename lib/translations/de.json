@@ -229,6 +229,33 @@
       "saveFailed": "Fehler beim Speichern der Schicht"
       }
   },
+  "tour": {
+    "next": "Weiter",
+    "prev": "Zurück",
+    "done": "Fertig",
+    "dashboard": {
+      "calendar": {
+        "step1": { "title": "Gruppe auswählen", "desc": "Wählen Sie die Gruppe, deren Schichten im Kalender angezeigt werden." },
+        "step2": { "title": "Vorheriger Monat", "desc": "Klicken Sie, um zum vorherigen Monat zu wechseln." },
+        "step3": { "title": "Nächster Monat", "desc": "Klicken Sie, um zum nächsten Monat zu wechseln." },
+        "step4": { "title": "Schichtenkalender", "desc": "Klicken Sie auf einen Tag, um eine Schicht hinzuzufügen oder zu bearbeiten." },
+        "step5": { "title": "Statistik", "desc": "Hier finden Sie Stundenzusammenfassungen und können Berichte herunterladen." }
+      },
+      "stats": {
+        "step1": { "title": "Nach Gruppe filtern", "desc": "Wählen Sie eine Gruppe oder sehen Sie alle Stunden zusammen." },
+        "step2": { "title": "Monat auswählen", "desc": "Wählen Sie den Monat, für den Sie die Statistik sehen möchten." },
+        "step3": { "title": "Zusammenfassung", "desc": "Gesamtstunden für den gewählten Monat. Hier können Sie auch Excel und PDF herunterladen." },
+        "step4": { "title": "Schichtentabelle", "desc": "Alle Schichten mit Aufschlüsselung nach Tag-, Nacht-, Sonntags- und Feiertagsstunden." }
+      }
+    },
+    "schedule": {
+      "step1": { "title": "Gruppen", "desc": "Wechseln Sie zwischen Gruppen, um deren Dienstpläne zu sehen." },
+      "step2": { "title": "Vorheriger Monat", "desc": "Klicken Sie, um zum vorherigen Monat zu wechseln." },
+      "step3": { "title": "Nächster Monat", "desc": "Klicken Sie, um zum nächsten Monat zu wechseln." },
+      "step4": { "title": "Dienstplan", "desc": "Klicken Sie auf einen Tag, um eine geplante Schicht anzuzeigen oder hinzuzufügen." },
+      "step5": { "title": "Notizen", "desc": "Hier können Sie eine Notiz für die Gruppe für den aktuellen Monat hinterlassen." }
+    }
+  },
   "bot": {
     "welcomeback": "Willkommen zurück",
     "linkSuccess": "Erfolgreich verknüpft",
