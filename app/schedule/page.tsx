@@ -3,9 +3,10 @@
 import { useState, useEffect, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { useTranslation } from '@/lib/i18n';
-import { LogOut, ArrowLeft, Calendar as CalendarIcon, Shield, Trash2, BarChart2, NotebookText, ChevronLeft, ChevronRight } from 'lucide-react';
+import { LogOut, ArrowLeft, Calendar as CalendarIcon, Shield, Trash2, BarChart2, NotebookText, ChevronLeft, ChevronRight, ArrowLeftRight, X } from 'lucide-react';
 import { supabase } from '@/lib/supabase';
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, startOfWeek, isSameMonth } from 'date-fns';
+import { getGroupQuickConfig } from '@/lib/constants';
 import { de } from 'date-fns/locale';
 import ScheduleShiftModal from './ScheduleShiftModal';
 import ScheduleViewModal from './ScheduleViewModal';
@@ -31,6 +32,10 @@ export default function Schedule() {
   const [noteText, setNoteText] = useState('');
   const [notesForCurrentGroup, setNotesForCurrentGroup] = useState<any[]>([]);
 
+  const [showCompareModal, setShowCompareModal] = useState(false);
+  const [compareLoading, setCompareLoading] = useState(false);
+  const [compareRows, setCompareRows] = useState<any[]>([]);
+
   const touchStartX = useRef<number | null>(null);
 
   const { t } = useTranslation();
@@ -50,19 +55,40 @@ export default function Schedule() {
         .single();
       if (prof) setProfile(prof);
 
-      const { data: ugData } = await supabase
-        .from('user_groups')
-        .select('group_id, role, groups (id, name)')
-        .eq('user_id', user.id);
+      if (prof?.is_admin) {
+        // Admin sees all groups that have at least one member
+        const { data: allUgData } = await supabase
+          .from('user_groups')
+          .select('group_id, groups(id, name)');
 
-      if (ugData && ugData.length > 0) {
-        const groups = ugData.flatMap(item => item.groups ?? []).filter(Boolean);
-        setUserGroups(groups);
-        setCurrentUserRole(ugData[0]?.role || 'viewer');
-        if (groups.length > 0) {
-          setActiveGroup(groups[0].name);
-          setActiveGroupId(groups[0].id);
-        } else setActiveGroup('Ingo Kuby');
+        if (allUgData) {
+          const seen = new Set<string>();
+          const groups = allUgData
+            .filter(ug => ug.groups && !seen.has(ug.group_id) && !!seen.add(ug.group_id))
+            .map(ug => ug.groups as { id: string; name: string })
+            .sort((a, b) => a.name.localeCompare(b.name));
+          setUserGroups(groups);
+          setCurrentUserRole('editor');
+          if (groups.length > 0) {
+            setActiveGroup(groups[0].name);
+            setActiveGroupId(groups[0].id);
+          }
+        }
+      } else {
+        const { data: ugData } = await supabase
+          .from('user_groups')
+          .select('group_id, role, groups(id, name)')
+          .eq('user_id', user.id);
+
+        if (ugData && ugData.length > 0) {
+          const groups = ugData.flatMap(item => item.groups ?? []).filter(Boolean);
+          setUserGroups(groups);
+          setCurrentUserRole(ugData[0]?.role || 'viewer');
+          if (groups.length > 0) {
+            setActiveGroup(groups[0].name);
+            setActiveGroupId(groups[0].id);
+          } else setActiveGroup('Ingo Kuby');
+        }
       }
       setLoading(false);
     };
@@ -172,12 +198,87 @@ export default function Schedule() {
     }
   };
 
+  const openCompareModal = async () => {
+    setShowCompareModal(true);
+    setCompareLoading(true);
+    try {
+      const monthStart = format(startOfMonth(currentMonth), 'yyyy-MM-dd');
+      const monthEnd   = format(endOfMonth(currentMonth),   'yyyy-MM-dd');
+
+      const { data: workedData } = await supabase
+        .from('work_shifts')
+        .select('*')
+        .eq('group', activeGroup)
+        .gte('date', monthStart)
+        .lte('date', monthEnd);
+
+      const monthPlanned = plannedShifts
+        .filter(s => s.date >= monthStart && s.date <= monthEnd);
+
+      const filteredWorked = workedData || [];
+
+      const userIds = [...new Set([
+        ...monthPlanned.map((s: any) => s.user_id),
+        ...filteredWorked.map((s: any) => s.user_id),
+      ])];
+
+      const { data: profilesData } = await supabase
+        .from('profiles')
+        .select('id, username')
+        .in('id', userIds);
+
+      const profileMap: Record<string, string> = Object.fromEntries(
+        (profilesData || []).map((p: any) => [p.id, p.username])
+      );
+
+      const keySet = new Set<string>();
+      monthPlanned.forEach((s: any) => keySet.add(`${s.date}__${s.user_id}`));
+      filteredWorked.forEach((s: any) => keySet.add(`${s.date}__${s.user_id}`));
+
+      const rows = [...keySet].map(key => {
+        const sep = key.indexOf('__');
+        const date   = key.slice(0, sep);
+        const userId = key.slice(sep + 2);
+        const plan    = monthPlanned.find((s: any) => s.date === date && s.user_id === userId);
+        const worked  = filteredWorked.find((s: any) => s.date === date && s.user_id === userId);
+        const pStart  = plan?.start_time?.slice(0, 5) ?? null;
+        const pEnd    = plan?.end_time?.slice(0, 5)   ?? null;
+        const wStart  = worked?.start_time?.slice(0, 5) ?? null;
+        const wEnd    = worked?.end_time?.slice(0, 5)   ?? null;
+        const status  = !plan ? 'extra' : !worked ? 'missing' : (pStart === wStart && pEnd === wEnd) ? 'match' : 'mismatch';
+        return { date, userId, username: profileMap[userId] || '—', pStart, pEnd, wStart, wEnd, status };
+      }).sort((a, b) => {
+        if (a.date < b.date) return -1;
+        if (a.date > b.date) return 1;
+        const aTime = a.pStart || a.wStart || '';
+        const bTime = b.pStart || b.wStart || '';
+        if (aTime < bTime) return -1;
+        if (aTime > bTime) return 1;
+        return (a.username || '').localeCompare(b.username || '', 'de');
+      });
+
+      setCompareRows(rows);
+    } finally {
+      setCompareLoading(false);
+    }
+  };
+
   const days = eachDayOfInterval({
     start: startOfWeek(startOfMonth(currentMonth), { weekStartsOn: 1 }),
     end: endOfMonth(currentMonth),
   });
 
-  const hasMyShift = (dateStr: string) => plannedShifts.some(s => s.date === dateStr && s.user_id === user?.id);
+  // Only highlight days where the user was explicitly selected (has a primary shift).
+  // Tail shifts (00:00–10:00) don't count. Check per shift's group config.
+  const hasMyShift = (dateStr: string) => plannedShifts.some(s => {
+    if (s.date !== dateStr || s.user_id !== user?.id) return false;
+    const cfg = getGroupQuickConfig(s.group_name || '');
+    if (cfg.nextDayTail) {
+      return (s.start_time?.slice(0, 5) === '10:00' && s.end_time?.slice(0, 5) === '00:00') ||
+             (s.start_time?.slice(0, 5) === '00:00' && s.end_time?.slice(0, 5) === '00:00');
+    }
+    return s.start_time?.slice(0, 5) === cfg.start && s.end_time?.slice(0, 5) === cfg.end;
+  });
   const shiftsForSelectedDate = plannedShifts.filter(s => s.date === selectedDate);
 
   if (loading) {
@@ -204,7 +305,10 @@ export default function Schedule() {
           <ArrowLeft size={24} />
         </button>
         <h1 className="text-xl font-bold">{t('schedule.title')}</h1>
-        <div className="w-8" />
+        {profile?.is_admin
+          ? <button onClick={openCompareModal} className="p-1 text-zinc-500 hover:text-zinc-200 active:scale-90 transition-all"><ArrowLeftRight size={20} /></button>
+          : <div className="w-8" />
+        }
       </div>
 
       <div className="flex">
@@ -262,9 +366,16 @@ export default function Schedule() {
                 <button data-tour="schedule-month-prev" onClick={() => changeMonth(-1)} className="p-3 hover:bg-zinc-800 rounded-2xl transition-colors active:scale-90">
                   <ChevronLeft size={20} />
                 </button>
-                <h2 className="text-xl sm:text-2xl font-semibold capitalize select-none">
-                  {format(currentMonth, 'LLLL yyyy', { locale: de })}
-                </h2>
+                <div className="flex items-center gap-2">
+                  <h2 className="text-xl sm:text-2xl font-semibold capitalize select-none">
+                    {format(currentMonth, 'LLLL yyyy', { locale: de })}
+                  </h2>
+                  {profile?.is_admin && (
+                    <button onClick={openCompareModal} className="hidden lg:flex text-zinc-600 hover:text-zinc-300 transition-colors p-1 rounded-lg hover:bg-zinc-800" title="Kalender vergleichen">
+                      <ArrowLeftRight size={16} />
+                    </button>
+                  )}
+                </div>
                 <button data-tour="schedule-month-next" onClick={() => changeMonth(1)} className="p-3 hover:bg-zinc-800 rounded-2xl transition-colors active:scale-90">
                   <ChevronRight size={20} />
                 </button>
@@ -379,6 +490,91 @@ export default function Schedule() {
       </div>
 
       <MobileNav isAdmin={profile?.is_admin} />
+
+      {/* ==================== COMPARE MODAL ==================== */}
+      {showCompareModal && (
+        <div className="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-3xl max-h-[90vh] flex flex-col shadow-2xl">
+
+            {/* Header */}
+            <div className="p-5 border-b border-zinc-800 flex justify-between items-start flex-shrink-0">
+              <div>
+                <h2 className="text-lg font-semibold flex items-center gap-2">
+                  <ArrowLeftRight size={18} className="text-zinc-400" />
+                  Kalendervergleich
+                </h2>
+                <p className="text-sm text-zinc-400 mt-0.5">
+                  {activeGroup} · {format(currentMonth, 'LLLL yyyy', { locale: de })}
+                </p>
+              </div>
+              <button onClick={() => setShowCompareModal(false)} className="text-zinc-400 hover:text-white transition-colors min-w-[36px] min-h-[36px] flex items-center justify-center">
+                <X size={20} />
+              </button>
+            </div>
+
+            {/* Legend */}
+            <div className="px-5 py-2.5 border-b border-zinc-800 flex flex-wrap gap-4 text-xs flex-shrink-0">
+              <span className="flex items-center gap-1.5 text-emerald-400"><span className="w-2 h-2 rounded-full bg-emerald-400 inline-block" /> Совпадает</span>
+              <span className="flex items-center gap-1.5 text-amber-400"><span className="w-2 h-2 rounded-full bg-amber-400 inline-block" /> Расхождение</span>
+              <span className="flex items-center gap-1.5 text-rose-400"><span className="w-2 h-2 rounded-full bg-rose-400 inline-block" /> Нет отработки</span>
+              <span className="flex items-center gap-1.5 text-sky-400"><span className="w-2 h-2 rounded-full bg-sky-400 inline-block" /> Не в плане</span>
+            </div>
+
+            {/* Content */}
+            <div className="overflow-auto flex-1">
+              {compareLoading ? (
+                <div className="flex items-center justify-center p-16">
+                  <div className="w-8 h-8 border-2 border-zinc-700 border-t-emerald-400 rounded-full animate-spin" />
+                </div>
+              ) : compareRows.length === 0 ? (
+                <p className="text-center text-zinc-500 p-16">Нет данных за этот месяц</p>
+              ) : (
+                <table className="w-full">
+                  <thead className="bg-zinc-800 sticky top-0">
+                    <tr>
+                      <th className="text-left p-3 text-xs font-medium text-zinc-400">Datum</th>
+                      <th className="text-left p-3 text-xs font-medium text-zinc-400">Mitarbeiter</th>
+                      <th className="text-left p-3 text-xs font-medium text-zinc-400">Geplant</th>
+                      <th className="text-left p-3 text-xs font-medium text-zinc-400">Gearbeitet</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {compareRows.map((row, i) => {
+                      const rowStyle =
+                        row.status === 'mismatch' ? 'bg-amber-950/40 border-amber-900/40' :
+                        row.status === 'missing'  ? 'bg-rose-950/40 border-rose-900/40' :
+                        row.status === 'extra'    ? 'bg-sky-950/40 border-sky-900/40' :
+                        '';
+                      return (
+                        <tr key={i} className={`border-t border-zinc-800 ${rowStyle}`}>
+                          <td className="p-3 text-sm tabular-nums">
+                            {format(new Date(row.date + 'T00:00:00'), 'dd.MM')}
+                          </td>
+                          <td className="p-3 text-sm font-medium">{row.username}</td>
+                          <td className={`p-3 text-sm tabular-nums ${row.status === 'extra' ? 'text-zinc-600' : row.status === 'mismatch' ? 'text-amber-300' : ''}`}>
+                            {row.pStart ? `${row.pStart} – ${row.pEnd}` : <span className="text-zinc-600">—</span>}
+                          </td>
+                          <td className={`p-3 text-sm tabular-nums ${row.status === 'missing' ? 'text-zinc-600' : row.status === 'mismatch' ? 'text-amber-300' : ''}`}>
+                            {row.wStart ? `${row.wStart} – ${row.wEnd}` : <span className="text-zinc-600">—</span>}
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              )}
+            </div>
+
+            {/* Footer */}
+            <div className="p-4 border-t border-zinc-800 flex justify-between items-center flex-shrink-0">
+              <span className="text-xs text-zinc-500">{compareRows.filter(r => r.status !== 'match').length} расхождений из {compareRows.length}</span>
+              <button onClick={() => setShowCompareModal(false)} className="px-6 py-2.5 bg-zinc-700 hover:bg-zinc-600 rounded-xl text-sm transition-colors">
+                Schließen
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {currentUserRole === 'editor' ? (
         <ScheduleShiftModal
