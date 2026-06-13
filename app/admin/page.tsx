@@ -187,35 +187,42 @@ export default function AdminPanel() {
     const totalsBase = ["Gesamt", "", "", sumDay, sumNight, sumSunday, sumHoliday, "", "", "", sumDay + sumNight];
     const totalsRow  = isAllUsers ? ["", ...totalsBase] : totalsBase;
 
+    const USER_PALETTE = ['FFE0CC', 'CCE8FF', 'CCFFCC', 'FFE0FF', 'FFFFCC', 'E0E0FF', 'FFE0E0', 'D4F0D4'];
+    const allUserIds = isAllUsers ? [...new Set(exportShifts.map((s: any) => s.user_id))] : [];
+    const userColorMap: Record<string, number> = Object.fromEntries(allUserIds.map((id, i) => [id as string, i]));
+    const hasMultipleUsers = allUserIds.length > 1;
+
     const allRows: any[][] = [...header, ...rows, totalsRow];
 
-    // Per-user summary section (only when showing all users and there are multiple)
-    const USER_PALETTE = ['FFE0CC', 'CCE8FF', 'CCFFCC', 'FFE0FF', 'FFFFCC', 'E0E0FF', 'FFE0E0', 'D4F0D4'];
+    // Per-user summary section + grand total (only when showing all users and there are multiple)
     const userSummaryMeta: { rowIdx: number; userIdx: number }[] = [];
+    let grandTotalRowIdx = -1;
 
-    if (isAllUsers) {
-      const userIds = [...new Set(exportShifts.map((s: any) => s.user_id))];
-      if (userIds.length > 1) {
+    if (isAllUsers && hasMultipleUsers) {
+      allRows.push(Array(colCount).fill(""));
+      allUserIds.forEach((userId, userIdx) => {
+        const userShifts = exportShifts.filter((s: any) => s.user_id === userId);
+        const userName = users.find(u => u.id === userId)?.username || '—';
+        const uDay     = userShifts.reduce((acc: number, s: any) => acc + (s.day_hours || 0), 0);
+        const uNight   = userShifts.reduce((acc: number, s: any) => acc + (s.night_hours || 0), 0);
+        const uSunday  = userShifts.reduce((acc: number, s: any) => acc + (s.sunday_hours || 0), 0);
+        const uHoliday = userShifts.reduce((acc: number, s: any) => acc + (s.holiday_hours || 0), 0);
+        const summaryRow = Array(colCount).fill("");
+        summaryRow[0] = userName;
+        summaryRow[4] = uDay;
+        summaryRow[5] = uNight;
+        summaryRow[6] = uSunday;
+        summaryRow[7] = uHoliday;
+        summaryRow[colCount - 1] = uDay + uNight;
+        userSummaryMeta.push({ rowIdx: allRows.length, userIdx });
+        allRows.push(summaryRow);
         allRows.push(Array(colCount).fill(""));
-        userIds.forEach((userId, userIdx) => {
-          const userShifts = exportShifts.filter((s: any) => s.user_id === userId);
-          const userName = users.find(u => u.id === userId)?.username || '—';
-          const uDay     = userShifts.reduce((acc: number, s: any) => acc + (s.day_hours || 0), 0);
-          const uNight   = userShifts.reduce((acc: number, s: any) => acc + (s.night_hours || 0), 0);
-          const uSunday  = userShifts.reduce((acc: number, s: any) => acc + (s.sunday_hours || 0), 0);
-          const uHoliday = userShifts.reduce((acc: number, s: any) => acc + (s.holiday_hours || 0), 0);
-          const summaryRow = Array(colCount).fill("");
-          summaryRow[0] = userName;
-          summaryRow[4] = uDay;
-          summaryRow[5] = uNight;
-          summaryRow[6] = uSunday;
-          summaryRow[7] = uHoliday;
-          summaryRow[colCount - 1] = uDay + uNight;
-          userSummaryMeta.push({ rowIdx: allRows.length, userIdx });
-          allRows.push(summaryRow);
-          allRows.push(Array(colCount).fill(""));
-        });
-      }
+      });
+      // Grand total row — only rightmost column
+      const grandRow = Array(colCount).fill("");
+      grandRow[colCount - 1] = sumDay + sumNight;
+      grandTotalRowIdx = allRows.length;
+      allRows.push(grandRow);
     }
 
     const ws = XLSXStyle.utils.aoa_to_sheet(allRows);
@@ -249,6 +256,8 @@ export default function AdminPanel() {
         const isTotals    = r === totalsRowIdx;
         const dataIdx     = r - firstDataRow;
         const red         = !isColHeader && !isTotals && dataIdx >= 0 && isRedRow[dataIdx];
+        const rowUserId   = (!isColHeader && !isTotals && dataIdx >= 0) ? exportShifts[dataIdx]?.user_id : null;
+        const userBg      = (rowUserId && hasMultipleUsers) ? USER_PALETTE[userColorMap[rowUserId] % USER_PALETTE.length] : null;
 
         ws[addr].s = {
           font: {
@@ -261,8 +270,9 @@ export default function AdminPanel() {
             left:   c === 0              ? medium : thin,
             right:  c === colCount - 1   ? medium : thin,
           },
-          ...(isColHeader ? { fill: { patternType: 'solid', fgColor: { rgb: 'D9E1F2' } } } : {}),
-          ...(isTotals    ? { fill: { patternType: 'solid', fgColor: { rgb: 'F2F2F2' } } } : {}),
+          ...(isColHeader ? { fill: { patternType: 'solid', fgColor: { rgb: 'D9E1F2' } } } :
+              isTotals    ? { fill: { patternType: 'solid', fgColor: { rgb: 'F2F2F2' } } } :
+              userBg      ? { fill: { patternType: 'solid', fgColor: { rgb: userBg } } } : {}),
         };
       }
     }
@@ -284,6 +294,23 @@ export default function AdminPanel() {
         };
       }
     });
+
+    // Style grand total row
+    if (grandTotalRowIdx >= 0) {
+      for (let c = 0; c < colCount; c++) {
+        const addr = enc(grandTotalRowIdx, c);
+        if (!ws[addr]) ws[addr] = { v: '', t: 's' };
+        ws[addr].s = {
+          font: { bold: true, color: { rgb: '000000' } },
+          fill: { patternType: 'solid', fgColor: { rgb: 'D9D9D9' } },
+          border: {
+            top: medium, bottom: medium,
+            left:  c === 0             ? medium : thin,
+            right: c === colCount - 1  ? medium : thin,
+          },
+        };
+      }
+    }
 
     const wb = XLSXStyle.utils.book_new();
     XLSXStyle.utils.book_append_sheet(wb, ws, "StundenZettel");
