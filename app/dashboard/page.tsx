@@ -346,15 +346,18 @@ export default function Dashboard() {
   };
 
   const handleTelegramLink = async () => {
+    // Open window synchronously before any await so Safari doesn't block it
+    const win = window.open('', '_blank');
     try {
       const { data: { user } } = await supabase.auth.getUser();
-      if (!user) { showToast(t('errors.notAuthorized'), 'error'); return; }
+      if (!user) { win?.close(); showToast(t('errors.notAuthorized'), 'error'); return; }
       const token = crypto.randomUUID();
       const expiresAt = new Date(Date.now() + 15 * 60 * 1000).toISOString();
       const { error } = await supabase.from('telegram_link_tokens').insert({ profile_id: user.id, token, expires_at: expiresAt });
-      if (error) { showToast(t('errors.telegramLinkFailed'), 'error'); return; }
-      window.open(`https://t.me/work_hours_sozialbaer_bot?start=verify_${token}`, '_blank');
+      if (error) { win?.close(); showToast(t('errors.telegramLinkFailed'), 'error'); return; }
+      if (win) win.location.href = `https://t.me/work_hours_sozialbaer_bot?start=verify_${token}`;
     } catch {
+      win?.close();
       showToast(t('errors.generic'), 'error');
     }
   };
