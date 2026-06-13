@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseAdmin = createClient(
+export const dynamic = 'force-dynamic';
+
+const getAdmin = () => createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
@@ -10,7 +12,7 @@ export async function GET(request: NextRequest) {
   const profileId = request.headers.get('x-profile-id');
   if (!profileId) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
 
-  const { data } = await supabaseAdmin
+  const { data } = await getAdmin()
     .from('user_notification_settings')
     .select('notification_time')
     .eq('profile_id', profileId)
@@ -25,7 +27,7 @@ export async function PUT(request: NextRequest) {
 
   const { notificationTime } = await request.json();
 
-  const { error } = await supabaseAdmin
+  const { error } = await getAdmin()
     .from('user_notification_settings')
     .upsert({ profile_id: profileId, notification_time: notificationTime });
 

@@ -212,6 +212,7 @@
     "user": "Benutzer",
     "update": "Aktualisieren",
     "deleteConfirm": "Diese Schicht löschen?",
+    "enterManualTime": "Zeit manuell eingeben",
     "Note": {
       "noMonthNote": "Bisher keine Notizen für diesen Monat",
       "user": "Benutzer",
@@ -292,6 +293,11 @@
 
     "writeshift": "Schicht eintragen",
     "myshift": "Meine Schichten",
+    "copyPlan": "Plan übernehmen",
+    "copyPlanDone": "Schichten übernommen",
+    "copyPlanSkipped": "bereits eingetragen",
+    "copyPlanEmpty": "Keine geplanten Schichten für diesen Monat",
+    "copyPlanAll": "Alle geplanten Schichten bereits eingetragen",
     "settings": "Einstellungen",
     "other": "Andere Datum",
     "confirm": "Bestätigen",

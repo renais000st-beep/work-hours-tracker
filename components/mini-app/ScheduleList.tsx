@@ -3,7 +3,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
-import { ChevronLeft, ChevronRight, CheckCircle2, Clock } from 'lucide-react';
+import { ChevronLeft, ChevronRight, CheckCircle2, Clock, CopyCheck } from 'lucide-react';
 import { calculateHours } from '@/lib/hours';
 import type { UserProfile, WorkShift, PlannedShift } from '@/types/mini-app';
 
@@ -13,6 +13,7 @@ export default function ScheduleList({ profile }: { profile: UserProfile }) {
   const [work, setWork] = useState<WorkShift[]>([]);
   const [loading, setLoading] = useState(true);
   const [recording, setRecording] = useState<string | null>(null);
+  const [copyingAll, setCopyingAll] = useState(false);
 
   const loadData = useCallback(async () => {
     setLoading(true);
@@ -53,6 +54,26 @@ export default function ScheduleList({ profile }: { profile: UserProfile }) {
     loadData();
   };
 
+  const copyAllToWork = async () => {
+    if (copyingAll) return;
+    setCopyingAll(true);
+    try {
+      const res = await fetch('/api/mini-app/copy-planned', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'x-profile-id': profile.profileId },
+        body: JSON.stringify({ month }),
+      });
+      const result = await res.json();
+      if (res.ok) {
+        await loadData();
+      } else {
+        console.error('copy-planned error:', result.error);
+      }
+    } finally {
+      setCopyingAll(false);
+    }
+  };
+
   const changeMonth = (dir: 1 | -1) => {
     const [y, m] = month.split('-').map(Number);
     const d = new Date(y, m - 1 + dir, 1);
@@ -77,22 +98,34 @@ export default function ScheduleList({ profile }: { profile: UserProfile }) {
 
       {/* Summary */}
       {!loading && planned.length > 0 && (
-        <div className="bg-zinc-900 rounded-2xl p-4 flex items-center justify-between">
-          <div>
-            <div className="text-sm text-zinc-400">Плановых смен</div>
-            <div className="text-2xl font-bold">{planned.length}</div>
+        <>
+          <div className="bg-zinc-900 rounded-2xl p-4 flex items-center justify-between">
+            <div>
+              <div className="text-sm text-zinc-400">Плановых смен</div>
+              <div className="text-2xl font-bold">{planned.length}</div>
+            </div>
+            {unrecorded > 0 ? (
+              <div className="text-right">
+                <div className="text-sm text-zinc-400">Не записано</div>
+                <div className="text-2xl font-bold text-amber-400">{unrecorded}</div>
+              </div>
+            ) : (
+              <div className="flex items-center gap-1.5 text-emerald-400 text-sm font-medium">
+                <CheckCircle2 size={18} /> Всё записано
+              </div>
+            )}
           </div>
-          {unrecorded > 0 ? (
-            <div className="text-right">
-              <div className="text-sm text-zinc-400">Не записано</div>
-              <div className="text-2xl font-bold text-amber-400">{unrecorded}</div>
-            </div>
-          ) : (
-            <div className="flex items-center gap-1.5 text-emerald-400 text-sm font-medium">
-              <CheckCircle2 size={18} /> Всё записано
-            </div>
+          {unrecorded > 0 && (
+            <button
+              onClick={copyAllToWork}
+              disabled={copyingAll}
+              className="w-full flex items-center justify-center gap-2 py-2.5 bg-emerald-600/90 hover:bg-emerald-600 active:bg-emerald-700 rounded-xl text-sm font-medium transition-colors disabled:opacity-50"
+            >
+              <CopyCheck size={15} />
+              {copyingAll ? 'Kopiere...' : `Alle übernehmen (${unrecorded})`}
+            </button>
           )}
-        </div>
+        </>
       )}
 
       {/* List */}

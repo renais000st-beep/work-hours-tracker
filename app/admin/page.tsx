@@ -6,7 +6,7 @@ import { useRouter } from 'next/navigation';
 import { format } from 'date-fns';
 import { de } from 'date-fns/locale';
 import { ArrowLeft, Download, Trash2, Users, UserPlus, FileDown, X, Pencil, Settings, ChevronUp, ChevronDown, Search, SlidersHorizontal } from 'lucide-react';
-import * as XLSX from 'xlsx';
+import XLSXStyle from 'xlsx-js-style';
 import { useTranslation } from '@/lib/i18n';
 import MobileNav from '@/app/components/MobileNav';
 import { useToast } from '@/app/components/Toast';
@@ -135,9 +135,16 @@ export default function AdminPanel() {
      // ==================== EXCEL ====================
   const downloadExcel = () => {
     const isAllUsers = selectedUserId === 'all';
+    const colCount = isAllUsers ? 12 : 11;
 
-    const header = [
-      ["Sozialbär GmbH i.Gr."],
+    const exportShifts = [...filteredShifts].sort((a, b) => {
+      const dateDiff = new Date(a.date).getTime() - new Date(b.date).getTime();
+      if (dateDiff !== 0) return dateDiff;
+      return (a.start_time || '').localeCompare(b.start_time || '');
+    });
+
+    const header: any[][] = [
+      ["Sozialbär GmbH"],
       ["Mozartstraße 4 – 56288 Kastellaun"],
       [""],
       ["Mitarbeiter", "", "", "Monat/Jahr"],
@@ -151,7 +158,13 @@ export default function AdminPanel() {
       header.push(["Zeit", "Zeit von", "bis", "Q4", "Nacht*", "So. 25%", "Feiertag (35%)", "Urlaub Std.", "Tage", "Krankheit", "Std."]);
     }
 
-    const rows = filteredShifts.map(s => {
+    // Определяем воскресенье/праздник для каждой строки
+    const isRedRow = exportShifts.map(s => {
+      const [y, mo, d] = s.date.split('-').map(Number);
+      return new Date(y, mo - 1, d).getDay() === 0 || (s.holiday_hours || 0) > 0;
+    });
+
+    const rows = exportShifts.map(s => {
       const userName = users.find(u => u.id === s.user_id)?.username || '—';
       const baseRow = [
         format(new Date(s.date), 'dd/MM'),
@@ -163,21 +176,84 @@ export default function AdminPanel() {
         s.holiday_hours || 0,
         "", "", "", ""
       ];
-
       return isAllUsers ? [userName, ...baseRow] : baseRow;
     });
 
-    const ws = XLSX.utils.aoa_to_sheet([...header, ...rows]);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "StundenZettel");
+    // Итоговая строка
+    const sumDay     = exportShifts.reduce((acc, s) => acc + (s.day_hours || 0), 0);
+    const sumNight   = exportShifts.reduce((acc, s) => acc + (s.night_hours || 0), 0);
+    const sumSunday  = exportShifts.reduce((acc, s) => acc + (s.sunday_hours || 0), 0);
+    const sumHoliday = exportShifts.reduce((acc, s) => acc + (s.holiday_hours || 0), 0);
+    const totalsBase = ["Gesamt", "", "", sumDay, sumNight, sumSunday, sumHoliday, "", "", "", sumDay + sumNight];
+    const totalsRow  = isAllUsers ? ["", ...totalsBase] : totalsBase;
+
+    const allRows = [...header, ...rows, totalsRow];
+    const ws = XLSXStyle.utils.aoa_to_sheet(allRows);
+
+    // Авто-ширина столбцов — пропускаем первые две строки (название + адрес)
+    const colWidths = Array(colCount).fill(0);
+    allRows.slice(2).forEach(row => {
+      (row as any[]).forEach((cell, c) => {
+        const len = String(cell ?? '').length;
+        if (len > colWidths[c]) colWidths[c] = len;
+      });
+    });
+    ws['!cols'] = colWidths.map(w => ({ wch: Math.max(w + 2, 8) }));
+
+    // Индексы строк (0-based)
+    const tableHeaderRow = 6;
+    const firstDataRow   = 7;
+    const lastDataRow    = firstDataRow + exportShifts.length - 1;
+    const totalsRowIdx   = lastDataRow + 1;
+
+    const enc = (r: number, c: number) => XLSXStyle.utils.encode_cell({ r, c });
+    const thin   = { style: 'thin',   color: { rgb: '000000' } };
+    const medium = { style: 'medium', color: { rgb: '000000' } };
+
+    for (let r = tableHeaderRow; r <= totalsRowIdx; r++) {
+      for (let c = 0; c < colCount; c++) {
+        const addr = enc(r, c);
+        if (!ws[addr]) ws[addr] = { v: '', t: 's' };
+
+        const isColHeader = r === tableHeaderRow;
+        const isTotals    = r === totalsRowIdx;
+        const dataIdx     = r - firstDataRow;
+        const red         = !isColHeader && !isTotals && dataIdx >= 0 && isRedRow[dataIdx];
+
+        ws[addr].s = {
+          font: {
+            bold:  isColHeader || isTotals,
+            color: { rgb: red ? 'FF0000' : '000000' },
+          },
+          border: {
+            top:    r === tableHeaderRow ? medium : thin,
+            bottom: r === totalsRowIdx   ? medium : thin,
+            left:   c === 0              ? medium : thin,
+            right:  c === colCount - 1   ? medium : thin,
+          },
+          ...(isColHeader ? { fill: { patternType: 'solid', fgColor: { rgb: 'D9E1F2' } } } : {}),
+          ...(isTotals    ? { fill: { patternType: 'solid', fgColor: { rgb: 'F2F2F2' } } } : {}),
+        };
+      }
+    }
+
+    const wb = XLSXStyle.utils.book_new();
+    XLSXStyle.utils.book_append_sheet(wb, ws, "StundenZettel");
 
     const filename = `StundenZettel_Sozialbaer_${isAllUsers ? 'Alle' : 'Einzel'}_${selectedMonth}.xlsx`;
-    XLSX.writeFile(wb, filename);
+    XLSXStyle.writeFile(wb, filename);
   };
 
   // ==================== PDF ====================
   const downloadPDF = () => {
     const isAllUsers = selectedUserId === 'all';
+
+    const exportShifts = [...filteredShifts].sort((a, b) => {
+      const dateDiff = new Date(a.date).getTime() - new Date(b.date).getTime();
+      if (dateDiff !== 0) return dateDiff;
+      return (a.start_time || '').localeCompare(b.start_time || '');
+    });
+
     const win = window.open('', '_blank');
     if (!win) return;
 
@@ -204,7 +280,7 @@ export default function AdminPanel() {
     }
 
     // Строки
-    filteredShifts.forEach(s => {
+    exportShifts.forEach(s => {
       const userName = users.find(u => u.id === s.user_id)?.username || '—';
       html += `<tr>`;
       if (isAllUsers) html += `<td>${userName}</td>`;

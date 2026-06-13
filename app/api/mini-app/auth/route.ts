@@ -2,7 +2,9 @@ import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 import { createHmac } from 'crypto';
 
-const supabaseAdmin = createClient(
+export const dynamic = 'force-dynamic';
+
+const getAdmin = () => createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
@@ -64,7 +66,7 @@ export async function POST(request: NextRequest) {
     const tgUser = JSON.parse(userStr);
     const telegramId = String(tgUser.id);
 
-    const { data: linked, error: linkError } = await supabaseAdmin
+    const { data: linked, error: linkError } = await getAdmin()
       .from('telegram_users')
       .select('profile_id')
       .eq('telegram_id', telegramId)
@@ -77,8 +79,8 @@ export async function POST(request: NextRequest) {
     const profileId = linked.profile_id;
 
     const [profileRes, groupsRes] = await Promise.all([
-      supabaseAdmin.from('profiles').select('username, is_admin').eq('id', profileId).single(),
-      supabaseAdmin.from('user_groups').select('role, groups(id, name)').eq('user_id', profileId),
+      getAdmin().from('profiles').select('username, is_admin').eq('id', profileId).single(),
+      getAdmin().from('user_groups').select('role, groups(id, name)').eq('user_id', profileId),
     ]);
 
     return NextResponse.json({

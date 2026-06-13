@@ -6,7 +6,8 @@ import { useRouter } from 'next/navigation';
 import { useTranslation } from '@/lib/i18n';
 import { format, addMonths, subMonths, startOfMonth, endOfMonth, eachDayOfInterval, startOfWeek, isSameMonth } from 'date-fns';
 import { de } from 'date-fns/locale';
-import { LogOut, Link, CheckCircle2, LayoutDashboard, Calendar as CalendarIcon, BarChart3, Trash2, Pencil, Download, Shield, FileDown, ChevronLeft, ChevronRight } from 'lucide-react';
+import { LogOut, Link, CheckCircle2, LayoutDashboard, Calendar as CalendarIcon, BarChart3, Trash2, Pencil, Download, Shield, FileDown, ChevronLeft, ChevronRight, Send, CopyCheck } from 'lucide-react';
+import { calculateHours } from '@/lib/hours';
 import ShiftModal from './ShiftModal';
 import MobileNav from '@/app/components/MobileNav';
 import { useToast } from '@/app/components/Toast';
@@ -52,6 +53,7 @@ export default function Dashboard() {
   const [selectedStatsGroup, setSelectedStatsGroup] = useState<string>('all');
   const [selectedStatMonth, setSelectedStatMonth] = useState<string>('');
   const [hasTelegramLinked, setHasTelegramLinked] = useState(false);
+  const [copyingPlan, setCopyingPlan] = useState(false);
 
   // swipe
   const touchStartX = useRef<number | null>(null);
@@ -280,6 +282,69 @@ export default function Dashboard() {
     setTimeout(() => printWindow.print(), 500);
   };
 
+  const handleCopyPlanned = async () => {
+    if (copyingPlan) return;
+    setCopyingPlan(true);
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const monthStr = format(currentMonth, 'yyyy-MM');
+      const [year, mon] = monthStr.split('-').map(Number);
+      const firstDay = `${monthStr}-01`;
+      const lastDay = format(new Date(year, mon, 0), 'yyyy-MM-dd');
+
+      const { data: planned } = await supabase
+        .from('planned_shifts')
+        .select('*')
+        .eq('user_id', user.id)
+        .gte('date', firstDay)
+        .lte('date', lastDay);
+
+      if (!planned || planned.length === 0) {
+        showToast('Нет плановых смен за этот месяц', 'info');
+        return;
+      }
+
+      const { data: existing } = await supabase
+        .from('work_shifts')
+        .select('date, group, start_time')
+        .eq('user_id', user.id)
+        .gte('date', firstDay)
+        .lte('date', lastDay);
+
+      const existingKeys = new Set(
+        (existing || []).map((s: any) => `${s.date}__${s.group}__${s.start_time}`)
+      );
+
+      const toInsert = (planned || [])
+        .filter((shift: any) => !existingKeys.has(`${shift.date}__${shift.group_name}__${shift.start_time}`))
+        .map((shift: any) => ({
+          user_id: user.id,
+          group: shift.group_name,
+          date: shift.date,
+          start_time: shift.start_time,
+          end_time: shift.end_time,
+          ...calculateHours(shift.start_time.slice(0, 5), shift.end_time.slice(0, 5), shift.date),
+        }));
+
+      if (toInsert.length === 0) {
+        showToast('Все плановые смены уже записаны', 'info');
+        return;
+      }
+
+      const { error } = await supabase.from('work_shifts').insert(toInsert);
+      if (error) {
+        showToast('Ошибка: ' + error.message, 'error');
+      } else {
+        showToast(`Перенесено ${toInsert.length} смен из плана`, 'success');
+        await loadData();
+      }
+    } finally {
+      setCopyingPlan(false);
+    }
+  };
+
   const handleTelegramLink = async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
@@ -400,6 +465,23 @@ export default function Dashboard() {
         {/* MAIN CONTENT */}
         <div className="flex-1 min-w-0 lg:ml-64">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 py-6 lg:py-8 pb-24 lg:pb-8">
+            {/* Telegram banner — mobile only, hidden when linked */}
+            {!hasTelegramLinked && (
+              <button
+                onClick={handleTelegramLink}
+                className="lg:hidden w-full flex items-center gap-3 px-4 py-3.5 mb-6 bg-[#229ED9]/10 border border-[#229ED9]/25 rounded-2xl text-left active:scale-[0.99] active:bg-[#229ED9]/20 transition-all"
+              >
+                <div className="flex-shrink-0 w-9 h-9 bg-[#229ED9]/20 rounded-xl flex items-center justify-center">
+                  <Send size={18} className="text-[#229ED9]" />
+                </div>
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-white">{t('common.telegram')}</p>
+                  <p className="text-xs text-zinc-400 mt-0.5">{t('common.telegramHint')}</p>
+                </div>
+                <ChevronRight size={16} className="text-[#229ED9] flex-shrink-0" />
+              </button>
+            )}
+
             {/* Табы */}
             <div className="flex bg-zinc-900 p-1 rounded-2xl w-fit mb-8">
               <button
@@ -447,9 +529,19 @@ export default function Dashboard() {
                     {format(currentMonth, 'LLLL yyyy', { locale: de })}
                     {selectedCalendarGroup && <span className="text-zinc-400 ml-2 text-lg">— {selectedCalendarGroup}</span>}
                   </h2>
-                  <button data-tour="dashboard-month-next" onClick={() => changeMonth(1)} className="p-3 hover:bg-zinc-800 rounded-2xl transition-colors active:scale-90">
-                    <ChevronRight size={20} />
-                  </button>
+                  <div className="flex items-center gap-1">
+                    <button
+                      onClick={handleCopyPlanned}
+                      disabled={copyingPlan}
+                      title="Aus Plan übernehmen"
+                      className="p-2.5 hover:bg-zinc-800 rounded-2xl transition-colors active:scale-90 text-zinc-500 hover:text-emerald-400 disabled:opacity-40"
+                    >
+                      <CopyCheck size={18} />
+                    </button>
+                    <button data-tour="dashboard-month-next" onClick={() => changeMonth(1)} className="p-3 hover:bg-zinc-800 rounded-2xl transition-colors active:scale-90">
+                      <ChevronRight size={20} />
+                    </button>
+                  </div>
                 </div>
 
                 <div className="grid grid-cols-7 gap-1 text-center text-zinc-400 text-xs sm:text-sm mb-3">

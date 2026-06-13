@@ -17,6 +17,8 @@ function getMainKeyboard() {
   const kb = new Keyboard()
     .text('📝 ' + t('bot.writeshift'))
     .text('📋 ' + t('bot.myshift'))
+    .row()
+    .text('📥 ' + t('bot.copyPlan'))
     .row();
 
   if (process.env.WEBAPP_URL) {
@@ -467,6 +469,96 @@ bot.hears('📋 Мои смены', async (ctx) => {
   } catch (error) {
     console.error('Ошибка при получении смен:', error);
     await ctx.reply(`${t('bot.trylater')}`);
+  }
+});
+
+// ==================== КНОПКА "Перенести план в факт" ====================
+bot.hears('📥 Перенести план в факт', async (ctx) => {
+  const telegramId = ctx.from?.id;
+  if (!telegramId) return;
+
+  try {
+    const { data: telegramUser } = await supabase
+      .from('telegram_users')
+      .select('profile_id')
+      .eq('telegram_id', telegramId)
+      .single();
+
+    if (!telegramUser?.profile_id) {
+      await ctx.reply(t('bot.noUser'));
+      return;
+    }
+
+    const userId = telegramUser.profile_id;
+    const now = new Date();
+    const year = now.getFullYear();
+    const mon = now.getMonth() + 1;
+    const month = `${year}-${String(mon).padStart(2, '0')}`;
+    const firstDay = `${month}-01`;
+    const lastDay = new Date(year, mon, 0).toISOString().slice(0, 10);
+
+    const { data: planned } = await supabase
+      .from('planned_shifts')
+      .select('*')
+      .eq('user_id', userId)
+      .gte('date', firstDay)
+      .lte('date', lastDay);
+
+    if (!planned || planned.length === 0) {
+      await ctx.reply(`ℹ️ ${t('bot.copyPlanEmpty')}`);
+      return;
+    }
+
+    const { data: existing } = await supabase
+      .from('work_shifts')
+      .select('date, group, start_time')
+      .eq('user_id', userId)
+      .gte('date', firstDay)
+      .lte('date', lastDay);
+
+    const existingKeys = new Set(
+      (existing || []).map((s: any) => `${s.date}__${s.group}__${s.start_time}`)
+    );
+
+    let inserted = 0;
+    let skipped = 0;
+
+    for (const shift of planned) {
+      const key = `${shift.date}__${shift.group_name}__${shift.start_time}`;
+      if (existingKeys.has(key)) { skipped++; continue; }
+
+      const { data: groupRow } = await supabase
+        .from('groups')
+        .select('id')
+        .eq('name', shift.group_name)
+        .maybeSingle();
+
+      const hours = calculateHours(shift.date, shift.start_time, shift.end_time);
+
+      const { error } = await supabase.from('work_shifts').insert({
+        user_id: userId,
+        group: shift.group_name,
+        group_id: groupRow?.id || null,
+        date: shift.date,
+        start_time: shift.start_time,
+        end_time: shift.end_time,
+        ...hours,
+      });
+
+      if (!error) inserted++;
+    }
+
+    const monthLabel = new Date(firstDay).toLocaleDateString('ru-RU', { month: 'long', year: 'numeric' });
+
+    if (inserted === 0) {
+      await ctx.reply(`ℹ️ ${t('bot.copyPlanAll')} (${skipped} шт.)`);
+    } else {
+      const skippedNote = skipped > 0 ? ` (${skipped} ${t('bot.copyPlanSkipped')})` : '';
+      await ctx.reply(`✅ ${t('bot.copyPlanDone')}: ${inserted} за ${monthLabel}.${skippedNote}`);
+    }
+  } catch (err) {
+    console.error('Ошибка в copyPlan:', err);
+    await ctx.reply(t('bot.errorr'));
   }
 });
 

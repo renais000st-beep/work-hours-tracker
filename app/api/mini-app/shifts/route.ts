@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseAdmin = createClient(
+export const dynamic = 'force-dynamic';
+
+const getAdmin = () => createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
@@ -22,7 +24,7 @@ export async function GET(request: NextRequest) {
   const firstDay = `${month}-01`;
   const lastDay = new Date(year, mon, 0).toISOString().slice(0, 10);
 
-  let query = supabaseAdmin
+  let query = getAdmin()
     .from('work_shifts')
     .select('*')
     .eq('user_id', profileId)
@@ -44,7 +46,7 @@ export async function POST(request: NextRequest) {
 
   const body = await request.json();
 
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await getAdmin()
     .from('work_shifts')
     .insert({ ...body, user_id: profileId })
     .select()
@@ -60,7 +62,7 @@ export async function PUT(request: NextRequest) {
 
   const { id, ...updates } = await request.json();
 
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await getAdmin()
     .from('work_shifts')
     .update(updates)
     .eq('id', id)
@@ -80,7 +82,7 @@ export async function DELETE(request: NextRequest) {
   const id = searchParams.get('id');
   if (!id) return NextResponse.json({ error: 'Missing id' }, { status: 400 });
 
-  const { error } = await supabaseAdmin
+  const { error } = await getAdmin()
     .from('work_shifts')
     .delete()
     .eq('id', id)

@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { createClient } from '@supabase/supabase-js';
 
-const supabaseAdmin = createClient(
+export const dynamic = 'force-dynamic';
+
+const getAdmin = () => createClient(
   process.env.NEXT_PUBLIC_SUPABASE_URL!,
   process.env.SUPABASE_SERVICE_ROLE_KEY!
 );
@@ -17,7 +19,7 @@ export async function GET(request: NextRequest) {
   const firstDay = `${month}-01`;
   const lastDay = new Date(year, mon, 0).toISOString().slice(0, 10);
 
-  const { data, error } = await supabaseAdmin
+  const { data, error } = await getAdmin()
     .from('planned_shifts')
     .select('*')
     .eq('user_id', profileId)
