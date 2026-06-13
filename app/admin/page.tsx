@@ -187,7 +187,37 @@ export default function AdminPanel() {
     const totalsBase = ["Gesamt", "", "", sumDay, sumNight, sumSunday, sumHoliday, "", "", "", sumDay + sumNight];
     const totalsRow  = isAllUsers ? ["", ...totalsBase] : totalsBase;
 
-    const allRows = [...header, ...rows, totalsRow];
+    const allRows: any[][] = [...header, ...rows, totalsRow];
+
+    // Per-user summary section (only when showing all users and there are multiple)
+    const USER_PALETTE = ['FFE0CC', 'CCE8FF', 'CCFFCC', 'FFE0FF', 'FFFFCC', 'E0E0FF', 'FFE0E0', 'D4F0D4'];
+    const userSummaryMeta: { rowIdx: number; userIdx: number }[] = [];
+
+    if (isAllUsers) {
+      const userIds = [...new Set(exportShifts.map((s: any) => s.user_id))];
+      if (userIds.length > 1) {
+        allRows.push(Array(colCount).fill(""));
+        userIds.forEach((userId, userIdx) => {
+          const userShifts = exportShifts.filter((s: any) => s.user_id === userId);
+          const userName = users.find(u => u.id === userId)?.username || '—';
+          const uDay     = userShifts.reduce((acc: number, s: any) => acc + (s.day_hours || 0), 0);
+          const uNight   = userShifts.reduce((acc: number, s: any) => acc + (s.night_hours || 0), 0);
+          const uSunday  = userShifts.reduce((acc: number, s: any) => acc + (s.sunday_hours || 0), 0);
+          const uHoliday = userShifts.reduce((acc: number, s: any) => acc + (s.holiday_hours || 0), 0);
+          const summaryRow = Array(colCount).fill("");
+          summaryRow[0] = userName;
+          summaryRow[4] = uDay;
+          summaryRow[5] = uNight;
+          summaryRow[6] = uSunday;
+          summaryRow[7] = uHoliday;
+          summaryRow[colCount - 1] = uDay + uNight;
+          userSummaryMeta.push({ rowIdx: allRows.length, userIdx });
+          allRows.push(summaryRow);
+          allRows.push(Array(colCount).fill(""));
+        });
+      }
+    }
+
     const ws = XLSXStyle.utils.aoa_to_sheet(allRows);
 
     // Авто-ширина столбцов — пропускаем первые две строки (название + адрес)
@@ -236,6 +266,24 @@ export default function AdminPanel() {
         };
       }
     }
+
+    // Style per-user summary rows
+    userSummaryMeta.forEach(({ rowIdx, userIdx }) => {
+      const color = USER_PALETTE[userIdx % USER_PALETTE.length];
+      for (let c = 0; c < colCount; c++) {
+        const addr = enc(rowIdx, c);
+        if (!ws[addr]) ws[addr] = { v: '', t: 's' };
+        ws[addr].s = {
+          font: { bold: true, color: { rgb: '000000' } },
+          fill: { patternType: 'solid', fgColor: { rgb: color } },
+          border: {
+            top: thin, bottom: thin,
+            left:  c === 0             ? medium : thin,
+            right: c === colCount - 1  ? medium : thin,
+          },
+        };
+      }
+    });
 
     const wb = XLSXStyle.utils.book_new();
     XLSXStyle.utils.book_append_sheet(wb, ws, "StundenZettel");
